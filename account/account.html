@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - Leaf Plant</title>
+    <link rel="icon" type="image/png" href="../image/Green Minimalist Leaf Plant Logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../global.css">
+    <link rel="stylesheet" href="../footer.css">
+    <link rel="stylesheet" href="../navbar.css">
+    <link rel="stylesheet" href="account.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/index/index.html">
+                <img src="../image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/about/about.html">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/products/product.html">Our Produce</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/article/article.html">Articles</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/contact/contact.html">Contact Us</a></li>
+                    <li class="nav-item"><a class="nav-link active" aria-current="page" href="/account/account.html" id="accountLink">Account</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="page-content">
+        <section class="py-5">
+            <div class="container d-flex justify-content-center align-items-center auth-container">
+                <div class="auth-card">
+                    <div class="auth-form-side">
+
+                        <ul class="nav nav-pills nav-justified nav-pills-auth mb-4" id="pills-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="pills-signup-tab" data-bs-toggle="pill" data-bs-target="#pills-signup" type="button" role="tab">Sign up</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pills-login-tab" data-bs-toggle="pill" data-bs-target="#pills-login" type="button" role="tab">Log in</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="pills-tabContent">
+                            <div class="tab-pane fade show active" id="pills-signup" role="tabpanel">
+                                <h2 class="mb-2">Create Your Account</h2>
+                                <p class="small-text subtitle">Sign up and get 1 month free trial</p>
+
+                                <form id="signupForm">
+                                    <div class="mb-3">
+                                        <label for="signupName" class="form-label">Full name</label>
+                                        <input type="text" class="form-control" id="signupName" placeholder="Enter your name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="signupEmail" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="signupEmail" placeholder="Enter your email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="signupPassword" class="form-label">Password</label>
+                                        <div class="input-group-password">
+                                            <input type="password" class="form-control" id="signupPassword" placeholder="Enter your password" required>
+                                            <i class="bi bi-eye-slash toggle-password" data-target="signupPassword"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="repeatPassword" class="form-label">Confirm password</label>
+                                        <div class="input-group-password">
+                                            <input type="password" class="form-control" id="repeatPassword" placeholder="Enter your password" required>
+                                            <i class="bi bi-eye-slash toggle-password" data-target="repeatPassword"></i>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-signup-main w-100">Sign up</button>
+
+                                    <div class="d-flex mt-3 gap-2">
+                                        <button type="button" class="btn btn-social-login flex-fill" onclick="alert('Google signup not implemented.')">
+                                            <i class="bi bi-google"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-social-login flex-fill" onclick="alert('Apple signup not implemented.')">
+                                            <i class="bi bi-apple"></i>
+                                        </button>
+                                    </div>
+
+                                    <p class="small-text text-center mt-3">
+                                        By signing up, you agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                                    </p>
+                                </form>
+                            </div>
+
+                            <div class="tab-pane fade" id="pills-login" role="tabpanel">
+                                <h2 class="mb-2">Welcome Back!</h2>
+                                <p class="small-text subtitle">Log in to view your orders and personalized settings.</p>
+
+                                <form id="loginForm">
+                                    <div class="mb-3">
+                                        <label for="loginEmail" class="form-label">Email address</label>
+                                        <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Enter your email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="loginPassword" class="form-label">Password</label>
+                                        <div class="input-group-password">
+                                            <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Enter your password" required>
+                                            <i class="bi bi-eye-slash toggle-password" data-target="loginPassword"></i>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" value="" id="rememberMeCheck">
+                                            <label class="form-check-label small-text" for="rememberMeCheck">
+                                                Remember Me
+                                            </label>
+                                        </div>
+                                        <a href="#" class="small-text">Forgot Password?</a>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-signup-main w-100">Log In</button>
+
+                                    <div class="d-flex mt-3 gap-2">
+                                        <button type="button" class="btn btn-social-login flex-fill" onclick="alert('Google login not implemented.')">
+                                            <i class="bi bi-google"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-social-login flex-fill" onclick="alert('Apple login not implemented.')">
+                                            <i class="bi bi-apple"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auth-image-side d-none d-md-flex">
+                        <div class="image-overlay"></div>
+                        <div class="testimonial-content d-flex flex-column align-items-end" style="position: relative; z-index: 2;">
+                            <div class="testimonial-box">
+                                <p class="mb-2 small-text" style="color: white; line-height: 1.4;">
+                                    Knowly has transformed the way I learn! The courses are well-structured, engaging, and easy to follow. I highly recommend it for anyone looking to upskill!
+                                </p>
+                                <p class="mb-0 small-text fw-bold">Koushik - UI/UX Designer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent" aria-label="Chat with AI Agent">
+        <i class="bi bi-whatsapp"></i>
+    </a>
+    <button id="scrollTopBtn" title="Go to top" aria-label="Scroll to Top">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+    <footer class="custom-footer">
+        <div class="footer-top">
+            <div class="footer-logo">
+                <img src="../image/Green Minimalist Leaf Plant Logo_Name.png" alt="AI Logo">
+            </div>
+
+            <div class="footer-info">
+                <h5>Address</h5>
+                <p>123 Main Street<br>Singapore 123456</p>
+            </div>
+
+            <div class="footer-info">
+                <h5>Email</h5>
+                <p>info@AI.com.sg</p>
+            </div>
+
+            <div class="footer-socials">
+                <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+            </div>
+        </div>
+
+        <hr>
+
+        <p class="footer-copy">Copyright &copy; 2025 WEB DEVELOPMENT PROJECT TEAM AI.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function updateAccountLink() {
+            const accountLink = document.getElementById("accountLink");
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const userRole = localStorage.getItem('userRole');
+
+            if (accountLink) {
+                if (isLoggedIn) {
+                    if (window.location.pathname.endsWith('/account/account.html')) {
+                        accountLink.classList.add('active');
+                    } else {
+                        accountLink.classList.remove('active');
+                    }
+
+                    if (userRole === 'admin') {
+                        accountLink.textContent = 'Admin Panel';
+                        // SCRIPT LINK UPDATED: (/admin/admin.html)
+                        accountLink.href = '/admin/admin.html';
+                    } else {
+                        accountLink.textContent = 'My Account';
+                        // SCRIPT LINK UPDATED: (/myaccount/myaccount.html)
+                        accountLink.href = '/myaccount/myaccount.html';
+                    }
+                } else {
+                    accountLink.textContent = 'Account';
+                    // SCRIPT LINK UPDATED: (/account/account.html)
+                    accountLink.href = '/account/account.html';
+                    accountLink.classList.add('active');
+                }
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+                    if (link.href.includes(window.location.pathname) && link.id !== 'accountLink') {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateAccountLink);
+
+        function loadSavedCredentials() {
+            const savedEmail = sessionStorage.getItem('savedEmail');
+            const savedPassword = sessionStorage.getItem('savedPassword');
+            const rememberMeCheck = document.getElementById('rememberMeCheck');
+
+            if (savedEmail && savedPassword) {
+                document.getElementById('loginEmail').value = savedEmail;
+                document.getElementById('loginPassword').value = savedPassword;
+                rememberMeCheck.checked = true;
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const rememberMe = document.getElementById('rememberMeCheck').checked;
+
+            let userRole = null;
+            let redirectPage = null;
+
+            if (email === 'admin@leafplant.com' && password === 'adminpass') {
+                userRole = 'admin';
+                // SCRIPT LINK UPDATED: (/admin/admin.html)
+                redirectPage = '/admin/admin.html';
+            }
+            else if (email === 'user@leafplant.com' && password === 'userpass') {
+                userRole = 'user';
+                // SCRIPT LINK UPDATED: (/myaccount/myaccount.html)
+                redirectPage = '/myaccount/myaccount.html';
+            }
+            else {
+                alert('Login Failed: Invalid email or password.');
+                sessionStorage.removeItem('savedEmail');
+                sessionStorage.removeItem('savedPassword');
+                return;
+            }
+
+            if (rememberMe) {
+                sessionStorage.setItem('savedEmail', email);
+                sessionStorage.setItem('savedPassword', password);
+            } else {
+                sessionStorage.removeItem('savedEmail');
+                sessionStorage.removeItem('savedPassword');
+            }
+
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userRole', userRole);
+
+            updateAccountLink();
+
+            window.location.href = redirectPage;
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const password = document.getElementById('signupPassword').value;
+            const repeatPassword = document.getElementById('repeatPassword').value;
+
+            if (password !== repeatPassword) {
+                alert('Sign Up Failed: Passwords do not match.');
+                return;
+            }
+
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userRole', 'user');
+            // SCRIPT LINK UPDATED: (/myaccount/myaccount.html)
+            window.location.href = '/myaccount/myaccount.html'; 
+        });
+
+        document.addEventListener('DOMContentLoaded', loadSavedCredentials);
+
+        document.querySelectorAll('.toggle-password').forEach(toggle => {
+            toggle.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const passwordInput = document.getElementById(targetId);
+
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+
+                this.classList.toggle('bi-eye');
+                this.classList.toggle('bi-eye-slash');
+            });
+
+            const scrollTopBtn = document.getElementById("scrollTopBtn");
+            window.onscroll = function () {
+                if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+                    scrollTopBtn.style.display = "block";
+                } else {
+                    scrollTopBtn.style.display = "none";
+                }
+            };
+            scrollTopBtn.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
