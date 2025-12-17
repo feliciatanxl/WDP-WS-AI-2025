@@ -4,168 +4,155 @@ import os
 from flask import Flask, request, jsonify
 from openai import OpenAI 
 import time 
+import datetime
+import re
 
 # ==============================================================================
 # 1. Configuration
 # ==============================================================================
-
 YOUR_ACCESS_TOKEN = "EAAQUEA9objwBQOfM8zyMMTjYwlMP0sA5tCPcAcYP8I1occ5InZCNIKeunjDtUUpTm6zPtReWqX3fXkWyRZAF51eCYNuF5tRRELZC9H3fn6m40H6QzOPSFv2E2ZBcffTZCZBfnL4fcYIf6rzOYl8PBU1b7zjag48Tohzp4BYghZB3CkZBMml8N189VorClnjintEzfgZDZD"
 PHONE_NUMBER_ID = "943273875531695" 
 YOUR_VERIFY_TOKEN = "leaf_plant_secret_key" 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
 
-inventory_df = None
-customer_df = None
-leader_df = None
-processed_messages = set()
-
 app = Flask(__name__)
+processed_messages = set()
+conversation_history = {} 
 
 try:
-    if OPENAI_API_KEY:
-        client = OpenAI(api_key=OPENAI_API_KEY)
-    else:
-        print("WARNING: No OpenAI API Key found in environment variables!")
-        client = None
-except Exception as e:
-    print(f"FATAL ERROR: Could not initialize OpenAI Client. Error: {e}")
+    client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+except Exception:
     client = None
 
 # ==============================================================================
-# 2. Data Loading
+# 2. Data Logic
 # ==============================================================================
 def load_excel_data():
-    global inventory_df, customer_df, leader_df
     try:
-        inventory_df = pd.read_excel('Inventory and Stock Status.xlsx') 
-        customer_df = pd.read_excel('Customer and Group Leader Mapping.xlsx') 
-        leader_df = pd.read_excel('Group Leader Summary.xlsx') 
-        customer_df['WA Phone Number'] = customer_df['WA Phone Number'].astype(str)
-        print("\n--- Data Loading Success ---\n")
+        inventory = pd.read_excel('Inventory and Stock Status.xlsx') 
+        customers = pd.read_excel('Customer and Group Leader Mapping.xlsx') 
+        leaders = pd.read_excel('Group Leader Summary.xlsx') 
+        customers['WA Phone Number'] = customers['WA Phone Number'].astype(str)
+        return inventory, customers, leaders
     except Exception as e:
-        print(f"FATAL ERROR loading data: {e}")
+        print(f"Error loading data: {e}")
+        return None, None, None
 
-load_excel_data()
-
-# ==============================================================================
-# 3. Message Sending
-# ==============================================================================
-def send_whatsapp_message(to_number, message_body):
-    API_URL = f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages"
-    headers = {"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}", "Content-Type": "application/json"}
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to_number,
-        "type": "text",
-        "text": { "body": message_body }
-    }
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        return response.json()
-    except Exception as err:
-        print(f"Error sending message: {err}")
-        return None
+def deduct_stock(product_name, qty_to_deduct):
+    inv, cust, lead = load_excel_data()
+    idx = inv[inv['Product Name'].str.contains(product_name, case=False)].index
+    if not idx.empty:
+        current_qty = inv.at[idx[0], 'Available Quantity']
+        inv.at[idx[0], 'Available Quantity'] = current_qty - int(qty_to_deduct)
+        inv.to_excel('Inventory and Stock Status.xlsx', index=False)
+        print(f"[STOCK UPDATE] {product_name} reduced by {qty_to_deduct}")
 
 # ==============================================================================
-# 4. Generative AI Processing Function (UPDATED FOR FULL INVENTORY)
+# 3. New Prospect Handling (Clean Address Extraction)
 # ==============================================================================
-
-def get_openai_response(customer_message, customer_name, leader_name, leader_contact):
-    """Generates a response by providing the full inventory to OpenAI."""
-    if not client:
-        return "AI is offline. Please check the API key environment variable."
-
-    # NEW: Convert the entire inventory into a text format for the AI to read
-    # We only send Product Name and Stock Status to keep it clean
-    stock_list = inventory_df[['Product Name', 'Stock Status']].to_string(index=False)
-    
-    # Updated System Instruction
-    system_prompt = f"""
-    You are 'Leaf Plant AI', a friendly customer agent for a group buying service. 
-    Customer: {customer_name}
-    Leader: {leader_name} ({leader_contact})
-
-    CURRENT INVENTORY STATUS:
-    {stock_list}
-
-    RULES:
-    1. Always address customer by name.
-    2. Use the 'CURRENT INVENTORY STATUS' list above to answer stock questions.
-    3. If they ask for a specific item (e.g., 'Cherry Tomatoes') but you only see a similar item 
-       (e.g., 'Heirloom Tomatoes'), explain what is available.
-    4. If an item is 'OUT OF STOCK', suggest they contact their Leader, {leader_name}, for restock dates.
-    5. Keep responses concise and professional.
+def handle_new_prospect(customer_number, customer_message):
+    system_prompt = """
+    You are Leaf Plant AI. A NEW user is messaging the farm.
+    1. Reply warmly and explain we need their neighborhood to find a local Leader.
+    2. PRIVACY: Explain that this neighborhood check helps protect their identity.
+    3. EXTRACTION: Add hidden tag: [[ADDRESS: Exact Neighborhood/Area]].
     """
-    
     try:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": customer_message}
-            ],
-            max_tokens=250
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": customer_message}]
         )
         ai_reply = completion.choices[0].message.content
-        print(f"--- AI REPLY: {ai_reply} ---")
-        return ai_reply
-        
+        address_match = re.search(r"\[\[ADDRESS: (.*?)\]\]", ai_reply)
+        extracted_address = address_match.group(1) if address_match else "Unknown"
+
+        leads_file = 'New_Leads_Waiting_List.xlsx'
+        new_lead = pd.DataFrame([{'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 'Phone': customer_number, 'Extracted Address': extracted_address, 'Status': 'Awaiting Leader Assignment'}])
+
+        if not os.path.exists(leads_file): new_lead.to_excel(leads_file, index=False)
+        else: pd.concat([pd.read_excel(leads_file), new_lead], ignore_index=True).to_excel(leads_file, index=False)
+            
+        return re.sub(r"\[\[ADDRESS: .*?\]\]", "", ai_reply).strip()
     except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        return "Oops! My AI brain hit a snag. Please try again."
+        # API FAIL-SAFE
+        print(f"\n[!!! API ERROR !!!] New Lead {customer_number} needs manual onboarding.")
+        return "Welcome to the farm! Our system is a bit slow right now, but a human salesperson will assist you with leader registration shortly."
 
 # ==============================================================================
-# 5. Webhook Endpoints (No Change)
+# 4. AI Sales Engine (Existing Customers + Fail-Safe)
 # ==============================================================================
+def get_openai_response(customer_message, customer_id, leader_name, inventory_df):
+    if not client: return "AI Offline."
+    if customer_id not in conversation_history: conversation_history[customer_id] = []
+    
+    history = conversation_history[customer_id][-4:]
+    stock_list = inventory_df[['Product Name', 'Stock Status', 'Price', 'Member Discount (%)', 'Available Quantity']].to_string(index=False)
+    
+    messages = [{"role": "system", "content": f"You are 'Leaf Plant AI'. Customer: {customer_id}. Leader: {leader_name}. Stock: {stock_list}. Tag order: [[DATA: Item | Qty | Cost]]."}]
+    for h in history: messages.append(h)
+    messages.append({"role": "user", "content": customer_message})
 
-@app.route('/webhook', methods=['GET'])
-def verify_webhook():
-    if request.args.get("hub.verify_token") == YOUR_VERIFY_TOKEN:
-        return request.args.get("hub.challenge"), 200
-    return "Forbidden", 403
+    try:
+        completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        ai_reply = completion.choices[0].message.content
+        
+        # Save to memory
+        conversation_history[customer_id].append({"role": "user", "content": customer_message})
+        conversation_history[customer_id].append({"role": "assistant", "content": ai_reply})
 
+        # ERP extraction
+        if "[[DATA:" in ai_reply:
+            match = re.search(r"\[\[DATA: (.*?)\]\]", ai_reply)
+            if match:
+                parts = [p.strip() for p in match.group(1).split('|')]
+                if len(parts) == 3:
+                    item, qty, cost = parts[0], parts[1], parts[2]
+                    log_file = 'Farm_Orders_Fulfillment.xlsx'
+                    order = pd.DataFrame([{'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 'Censored Buyer ID': customer_id, 'Group Leader': leader_name, 'Item': item, 'Quantity': qty, 'Total Cost': cost, 'ERP Sync Status': 'Ready for Narration Export'}])
+                    if not os.path.exists(log_file): order.to_excel(log_file, index=False)
+                    else: pd.concat([pd.read_excel(log_file), order]).to_excel(log_file, index=False)
+                    deduct_stock(item, qty)
+                    print(f"\n[!!! ERP SUCCESS !!!] Order logged for {customer_id}")
+
+        return re.sub(r"\[\[DATA: .*?\]\]", "", ai_reply).strip()
+
+    except Exception as e:
+        # API FAIL-SAFE ALERT
+        print(f"\n[!!! CRITICAL API FAILURE !!!]")
+        print(f"Customer: {customer_id} | Message: {customer_message}")
+        print(f"Error: {e}")
+        print(f"ACTION: Jump in manually on WhatsApp to secure the order!")
+        return "I'm having a slight connection issue with the farm database. Hang tight, a real salesperson will jump in to help you finish your order!"
+
+# ==============================================================================
+# 5. Webhook Handling
+# ==============================================================================
 @app.route('/webhook', methods=['POST'])
 def handle_message():
-    global processed_messages
     data = request.get_json()
+    inventory_df, customer_df, leader_df = load_excel_data() # Continuous link
     
     try:
-        val = data['entry'][0]['changes'][0]['value']
-        if 'messages' not in val: return jsonify({"status": "no message"}), 200
-        msg = val['messages'][0]
-        customer_number = msg['from']
-        msg_id = msg['id']
-        customer_message = msg['text']['body'] if msg['type'] == 'text' else "NOT_TEXT_MESSAGE"
-    except:
-        return jsonify({"status": "error"}), 200
+        msg = data['entry'][0]['changes'][0]['value']['messages'][0]
+        customer_number, msg_id, customer_message = msg['from'], msg['id'], msg['text']['body']
+    except: return jsonify({"status": "error"}), 200
 
     if msg_id in processed_messages: return jsonify({"status": "duplicate"}), 200
     processed_messages.add(msg_id) 
+
+    cust_row = customer_df[customer_df['WA Phone Number'] == customer_number]
     
-    print(f"--- INBOUND: {customer_message} ---")
+    if not cust_row.empty:
+        cust_id = cust_row['Customer ID'].iloc[0]
+        l_name = leader_df[leader_df['Group Leader ID'] == cust_row['Group Leader ID'].iloc[0]]['Leader Name'].iloc[0]
+        reply = get_openai_response(customer_message, cust_id, l_name, inventory_df)
+    else:
+        reply = handle_new_prospect(customer_number, customer_message)
 
-    try:
-        customer_info = customer_df[customer_df['WA Phone Number'] == customer_number]
-        if not customer_info.empty:
-            customer_name = customer_info['Customer ID'].iloc[0] 
-            leader_id = customer_info['Group Leader ID'].iloc[0]
-            leader_info = leader_df[leader_df['Group Leader ID'] == leader_id]
-            
-            leader_name = leader_info['Leader Name'].iloc[0] if not leader_info.empty else leader_id
-            leader_contact = leader_info['Contact Number'].iloc[0] if not leader_info.empty else "N/A"
-
-            if customer_message.lower() == "hello":
-                response_text = f"Hi {customer_name}! I'm Leaf Plant AI. I can check stock or connect you to your Leader, **{leader_name}** ({leader_contact})."
-            else:
-                response_text = get_openai_response(customer_message, customer_name, leader_name, leader_contact)
-            
-            send_whatsapp_message(customer_number, response_text)
-        else:
-            send_whatsapp_message(customer_number, "Welcome! Please contact a Group Leader to join.")
-    except Exception as e:
-        print(f"Processing Error: {e}")
-
-    time.sleep(1) 
+    requests.post(f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages", 
+                 headers={"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}"},
+                 json={"messaging_product": "whatsapp", "to": customer_number, "type": "text", "text": {"body": reply}})
+        
     return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
