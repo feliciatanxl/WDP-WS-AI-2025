@@ -4,27 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Bag | Fresh Farm</title>
-    <link rel="icon" type="image/png" href="image/Green Minimalist Leaf Plant Logo.png">
+    <link rel="icon" type="image/png" href="../image/Green Minimalist Leaf Plant Logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="global.css">
-    <link rel="stylesheet" href="footer.css">
-    <link rel="stylesheet" href="navbar.css">
+    
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="../css/navbar.css">
     <link rel="stylesheet" href="orders.css">
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="index.html"><img src="image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70"></a>
+            <a class="navbar-brand" href="../index/index.html"><img src="../image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70"></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="about.html">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link" href="product.html">Our Produce</a></li>
-                    <li class="nav-item"><a class="nav-link" href="article.html">Articles</a></li>
-                    <li class="nav-item"><a class="nav-link" href="contact.html">Contact Us</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="orders.html">My Order</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../about/about.html">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../products/product.html">Our Produce</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../article/article.html">Articles</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../contact/contact.html">Contact Us</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="../orders/orders.html" id="orderLink">My Order</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../account/account.html" id="accountLink">Account</a></li>
                 </ul>
             </div>
         </div>
@@ -33,7 +35,7 @@
     <main class="page-content container-xl mb-5" style="margin-top: 120px;">
         <div class="row justify-content-center fade-in mb-4">
             <div class="col-lg-8">
-                <a href="product.html" class="back-link text-decoration-none fw-bold mb-3 d-inline-block">
+                <a href="../products/product.html" class="back-link text-decoration-none fw-bold mb-3 d-inline-block">
                     <i class="bi bi-arrow-left-circle me-2 text-success"></i> Continue Shopping
                 </a>
                 <div class="d-flex justify-content-between align-items-center">
@@ -59,12 +61,12 @@
 
                     <div class="row g-3">
                         <div class="col-md-6 order-md-2">
-                            <a href="payment.html" class="btn btn-success w-100 py-3 fw-bold shadow-sm rounded-pill" style="font-size: 1.1rem;">
+                            <a href="../payment/payment.html" class="btn btn-success w-100 py-3 fw-bold shadow-sm rounded-pill" style="font-size: 1.1rem;">
                                 Proceed to Payment <i class="bi bi-arrow-right-short"></i>
                             </a>
                         </div>
                         <div class="col-md-6 order-md-1">
-                            <a href="product.html" class="btn-add-more">
+                            <a href="../products/product.html" class="btn-add-more">
                                 <i class="bi bi-plus-circle-dotted me-2"></i> Add more produce
                             </a>
                         </div>
@@ -82,7 +84,9 @@
 
     <footer class="custom-footer">
         <div class="footer-top">
-            <div class="footer-logo"><img src="image/Green Minimalist Leaf Plant Logo_Name.png" alt="AI Logo"></div>
+            <div class="footer-logo">
+                <img src="../image/Green Minimalist Leaf Plant Logo_Name.png" alt="AI Logo">
+            </div>
             <div class="footer-info"><h5>Address</h5><p>123 Main Street<br>Singapore 123456</p></div>
             <div class="footer-info"><h5>Email</h5><p>info@AI.com.sg</p></div>
             <div class="footer-socials"><a href="#"><i class="bi bi-facebook"></i></a><a href="#"><i class="bi bi-instagram"></i></a></div>
@@ -93,102 +97,156 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Master Data for stock checking
-            const products = {
-                1: { name: "Mizuna", stock: 0 }, 2: { name: "Chris Green Lettuce", stock: 10 },
-                3: { name: "Lollo Bionda Lettuce", stock: 15 }, 4: { name: "Cos Lettuce", stock: 12 },
-                5: { name: "Red Pak Choy", stock: 8 }, 6: { name: "Xiao Bai Cai", stock: 25 },
-                7: { name: "Jiu Bai Cai", stock: 18 }, 8: { name: "Mao Bai", stock: 14 }
-            };
+        // Master Data for stock checking
+        const products = {
+            1: { name: "Mizuna", stock: 0 }, 2: { name: "Chris Green Lettuce", stock: 10 },
+            3: { name: "Lollo Bionda Lettuce", stock: 15 }, 4: { name: "Cos Lettuce", stock: 12 },
+            5: { name: "Red Pak Choy", stock: 8 }, 6: { name: "Xiao Bai Cai", stock: 25 },
+            7: { name: "Jiu Bai Cai", stock: 18 }, 8: { name: "Mao Bai", stock: 14 }
+        };
 
-            const cartContainer = document.getElementById('cart-container');
-            const headerCount = document.getElementById('header-count');
-            const cartActions = document.getElementById('cart-actions');
-            const estimatedTotal = document.getElementById('estimated-total');
+        const cartContainer = document.getElementById('cart-container');
+        const headerCount = document.getElementById('header-count');
+        const cartActions = document.getElementById('cart-actions');
+        const estimatedTotal = document.getElementById('estimated-total');
 
-            let cart = JSON.parse(localStorage.getItem('farmCart')) || [];
+        let cart = JSON.parse(localStorage.getItem('farmCart')) || [];
 
-            function renderCart() {
-                cartContainer.innerHTML = '';
-                let subtotal = 0;
-                let itemCount = 0;
+        function renderCart() {
+            cartContainer.innerHTML = '';
+            let subtotal = 0;
+            let itemCount = 0;
 
-                if (cart.length === 0) {
-                    cartContainer.innerHTML = `
-                                    <div class="text-center py-5 fade-in bg-white rounded-4 shadow-sm">
-                                        <div class="mb-3"><i class="bi bi-basket3 text-success opacity-25" style="font-size: 5rem;"></i></div>
-                                        <h3 class="fw-bold text-dark">Your bag is empty</h3>
-                                        <p class="text-muted mb-4">Fresh produce is waiting for you.</p>
-                                        <a href="product.html" class="btn btn-outline-success rounded-pill px-4">Start Shopping</a>
-                                    </div>`;
-                    headerCount.textContent = "0 items";
-                    cartActions.style.display = 'none';
-                    return;
-                }
-
-                cartActions.style.display = 'block';
-
-                cart.forEach((item, index) => {
-                    const priceNum = parseFloat(item.price.replace('$', ''));
-                    const itemTotal = priceNum * item.qty;
-                    subtotal += itemTotal;
-                    itemCount += parseInt(item.qty);
-                    const maxStock = products[item.id] ? products[item.id].stock : 100;
-
-                    // Image Map
-                    const imgMap = { 1: 'image/mizuna.png', 2: 'image/chrisgreenlettuce.jpg', 3: 'image/lollo_bionda_lettuce.jpg', 4: 'image/cos_lettuce.jpg', 5: 'image/red_pak_choy.jpg', 6: 'image/xiaobaicai.jpg', 7: 'image/jiubaicai.jpg', 8: 'image/maobai.jpg' };
-                    const imgSrc = imgMap[item.id] || 'image/mizuna.png';
-
-                    const html = `
-                                    <div class="cart-card d-flex align-items-center bg-white p-3 mb-3 rounded-3 shadow-sm border">
-                                        <div class="cart-img-wrapper me-3"><img src="${imgSrc}" alt="${item.name}"></div>
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex justify-content-between">
-                                                <h5 class="mb-0 fw-bold">${item.name}</h5>
-                                                <span class="fw-bold">$${itemTotal.toFixed(2)}</span>
-                                            </div>
-                                            <small class="text-muted">$${priceNum.toFixed(2)} / unit</small>
-                                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                                <div class="qty-control d-flex align-items-center bg-light rounded-pill px-1">
-                                                    <button class="btn btn-sm rounded-circle" onclick="updateQty(${index}, -1)"><i class="bi bi-dash"></i></button>
-                                                    <input type="text" class="form-control-plaintext text-center fw-bold" style="width: 40px;" value="${item.qty}" readonly>
-                                                    <button class="btn btn-sm rounded-circle" onclick="updateQty(${index}, 1)"><i class="bi bi-plus"></i></button>
-                                                </div>
-                                                <button class="btn btn-link text-danger text-decoration-none p-0 small" onclick="removeItem(${index})"><i class="bi bi-trash"></i> Remove</button>
-                                            </div>
-                                            ${item.qty >= maxStock ? '<small class="text-danger d-block mt-1 fw-bold" style="font-size:0.75rem">Max stock reached</small>' : ''}
-                                        </div>
-                                    </div>
-                                `;
-                    cartContainer.innerHTML += html;
-                });
-
-                headerCount.textContent = `${itemCount} items`;
-                estimatedTotal.textContent = '$' + subtotal.toFixed(2);
+            if (cart.length === 0) {
+                cartContainer.innerHTML = `
+                    <div class="text-center py-5 fade-in bg-white rounded-4 shadow-sm">
+                        <div class="mb-3"><i class="bi bi-basket3 text-success opacity-25" style="font-size: 5rem;"></i></div>
+                        <h3 class="fw-bold text-dark">Your bag is empty</h3>
+                        <p class="text-muted mb-4">Fresh produce is waiting for you.</p>
+                        <a href="../products/product.html" class="btn btn-outline-success rounded-pill px-4">Start Shopping</a>
+                    </div>`;
+                headerCount.textContent = "0 items";
+                cartActions.style.display = 'none';
+                return;
             }
 
-            window.updateQty = function (index, change) {
-                let currentItem = cart[index];
-                let maxStock = products[currentItem.id] ? products[currentItem.id].stock : 100;
-                if (change === 1 && currentItem.qty >= maxStock) {
-                    alert(`Sorry, only ${maxStock} units of ${currentItem.name} are available.`); return;
-                }
-                let newQty = currentItem.qty + change;
-                if (newQty < 1) return;
-                cart[index].qty = newQty;
+            cartActions.style.display = 'block';
+
+            cart.forEach((item, index) => {
+                const priceNum = parseFloat(item.price.replace('$', ''));
+                const itemTotal = priceNum * item.qty;
+                subtotal += itemTotal;
+                itemCount += parseInt(item.qty);
+                const maxStock = products[item.id] ? products[item.id].stock : 100;
+
+                // Image Map - LINKS MUST BE CORRECTED TO PARENT-RELATIVE PATHS
+                const imgMap = { 
+                    1: '../image/mizuna.png', 
+                    2: '../image/chrisgreenlettuce.jpg', 
+                    3: '../image/lollo_bionda_lettuce.jpg', 
+                    4: '../image/cos_lettuce.jpg', 
+                    5: '../image/red_pak_choy.jpg', 
+                    6: '../image/xiaobaicai.jpg', 
+                    7: '../image/jiubaicai.jpg', 
+                    8: '../image/maobai.jpg' 
+                };
+                const imgSrc = imgMap[item.id] || '../image/mizuna.png';
+
+                const html = `
+                    <div class="cart-card d-flex align-items-center bg-white p-3 mb-3 rounded-3 shadow-sm border">
+                        <div class="cart-img-wrapper me-3"><img src="${imgSrc}" alt="${item.name}"></div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between">
+                                <h5 class="mb-0 fw-bold">${item.name}</h5>
+                                <span class="fw-bold">$${itemTotal.toFixed(2)}</span>
+                            </div>
+                            <small class="text-muted">$${priceNum.toFixed(2)} / unit</small>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="qty-control d-flex align-items-center bg-light rounded-pill px-1">
+                                    <button class="btn btn-sm rounded-circle" onclick="updateQty(${index}, -1)"><i class="bi bi-dash"></i></button>
+                                    <input type="text" class="form-control-plaintext text-center fw-bold" style="width: 40px;" value="${item.qty}" readonly>
+                                    <button class="btn btn-sm rounded-circle" onclick="updateQty(${index}, 1)"><i class="bi bi-plus"></i></button>
+                                </div>
+                                <button class="btn btn-link text-danger text-decoration-none p-0 small" onclick="removeItem(${index})"><i class="bi bi-trash"></i> Remove</button>
+                            </div>
+                            ${item.qty >= maxStock ? '<small class="text-danger d-block mt-1 fw-bold" style="font-size:0.75rem">Max stock reached</small>' : ''}
+                        </div>
+                    </div>
+                `;
+                cartContainer.innerHTML += html;
+            });
+
+            headerCount.textContent = `${itemCount} items`;
+            estimatedTotal.textContent = '$' + subtotal.toFixed(2);
+        }
+
+        window.updateQty = function (index, change) {
+            let currentItem = cart[index];
+            let maxStock = products[currentItem.id] ? products[currentItem.id].stock : 100;
+            if (change === 1 && currentItem.qty >= maxStock) {
+                alert(`Sorry, only ${maxStock} units of ${currentItem.name} are available.`); return;
+            }
+            let newQty = currentItem.qty + change;
+            if (newQty < 1) return;
+            cart[index].qty = newQty;
+            localStorage.setItem('farmCart', JSON.stringify(cart));
+            renderCart();
+        };
+
+        window.removeItem = function (index) {
+            if (confirm("Remove this item?")) {
+                cart.splice(index, 1);
                 localStorage.setItem('farmCart', JSON.stringify(cart));
                 renderCart();
-            };
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+             // 1. Initial Render
+             renderCart();
 
-            window.removeItem = function (index) {
-                if (confirm("Remove this item?")) {
-                    cart.splice(index, 1);
-                    localStorage.setItem('farmCart', JSON.stringify(cart));
-                    renderCart();
+             // 2. Navbar account link logic (for consistency)
+             function updateAccountLink() {
+                const accountLink = document.getElementById("accountLink");
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                const userRole = localStorage.getItem('userRole');
+
+                if (accountLink) {
+                    if (isLoggedIn) {
+                        accountLink.classList.remove('active');
+                        if (userRole === 'admin') {
+                            accountLink.textContent = 'Admin Panel';
+                            accountLink.href = '../admin/admin.html';
+                        } else {
+                            accountLink.textContent = 'User';
+                            accountLink.href = '../myaccount/myaccount.html';
+                        }
+                    } else {
+                        accountLink.textContent = 'Account';
+                        accountLink.href = '../account/account.html';
+                        accountLink.classList.remove('active');
+                    }
                 }
-            };
-            renderCart();
+            }
+            updateAccountLink();
+
+            // 3. Scroll to top functionality
+            const scrollTopBtn = document.getElementById("scrollTopBtn");
+            if (scrollTopBtn) {
+                window.addEventListener('scroll', function () {
+                    if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+                        scrollTopBtn.style.display = "block";
+                    } else {
+                        scrollTopBtn.style.display = "none";
+                    }
+                });
+                scrollTopBtn.addEventListener('click', () => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
         });
     </script>
 </body>

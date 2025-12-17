@@ -4,23 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Payment | Fresh Farm</title>
-    <link rel="icon" type="image/png" href="image/Green Minimalist Leaf Plant Logo.png">
+    <link rel="icon" type="image/png" href="../image/Green Minimalist Leaf Plant Logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="global.css">
-    <link rel="stylesheet" href="footer.css">
-    <link rel="stylesheet" href="navbar.css">
+    
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="../css/navbar.css">
     <link rel="stylesheet" href="payment.css">
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="index.html">
-                <img src="image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70">
+            <a class="navbar-brand" href="../index/index.html">
+                <img src="../image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70">
             </a>
             <div class="ms-auto d-flex align-items-center">
-                <a href="orders.html" class="text-decoration-none text-muted me-3">
+                <a href="../orders/orders.html" class="text-decoration-none text-muted me-3">
                     <i class="bi bi-arrow-left"></i> Back to Cart
                 </a>
                 <span class="text-success fw-bold"><i class="bi bi-shield-lock-fill"></i> Secure Checkout</span>
@@ -153,7 +154,8 @@
 
             // --- 1. Render Summary Data ---
             function renderSummary() {
-                if (cart.length === 0) window.location.href = 'orders.html';
+                // REDIRECT LINK CORRECTED: (../orders/orders.html)
+                if (cart.length === 0) window.location.href = '../orders/orders.html';
 
                 miniCartItems.innerHTML = '';
                 let subtotal = 0;
@@ -164,13 +166,13 @@
 
                     // Simple mini-item view
                     miniCartItems.innerHTML += `
-                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom small">
-                                <div>
-                                    <span class="fw-bold">${item.qty}x</span> ${item.name}
-                                </div>
-                                <span>$${(priceNum * item.qty).toFixed(2)}</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom small">
+                            <div>
+                                <span class="fw-bold">${item.qty}x</span> ${item.name}
                             </div>
-                        `;
+                            <span>$${(priceNum * item.qty).toFixed(2)}</span>
+                        </div>
+                    `;
                 });
 
                 updateFinancials(subtotal);
@@ -195,7 +197,7 @@
                 totalDisplay.textContent = '$' + total.toFixed(2);
             }
 
-            // --- 2. Form Formatters & Validation (Moved from orders.html) ---
+            // --- 2. Form Formatters & Validation ---
             const cardInput = document.getElementById('input-card');
             const expiryInput = document.getElementById('input-expiry');
             const cvvInput = document.getElementById('input-cvv');
@@ -241,6 +243,7 @@
             document.getElementById('checkout-form').addEventListener('submit', (e) => {
                 e.preventDefault();
 
+                // Validation Checks
                 const isEmailValid = validateField(document.getElementById('input-email'), /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('input-email').value));
                 const isNameValid = validateField(document.getElementById('input-name'), document.getElementById('input-name').value.trim().length >= 3);
                 const isAddressValid = validateField(document.getElementById('input-address'), document.getElementById('input-address').value.trim().length >= 10);
@@ -255,7 +258,8 @@
                     setTimeout(() => {
                         alert("Payment Successful! Order placed.");
                         localStorage.removeItem('farmCart');
-                        window.location.href = 'review.html';
+                        // REDIRECT LINK CORRECTED: (../review/review.html)
+                        window.location.href = '../review/review.html';
                     }, 2000);
                 } else {
                     // Shake effect for errors
