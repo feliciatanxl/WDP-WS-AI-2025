@@ -19,7 +19,7 @@ PHONE_NUMBER_ID = "943273875531695"
 YOUR_VERIFY_TOKEN = "leaf_plant_secret_key" 
 
 # 1.4. Gemini AI Configuration (PASTE YOUR KEY HERE!)
-GEMINI_API_KEY = "AIzaSyAZfhnS2daGH-5F0z3aQsk2Dic3y0tdx_o" 
+GEMINI_API_KEY = "#" 
 
 # Global variables to hold your dataframes (initialized to None)
 inventory_df = None
