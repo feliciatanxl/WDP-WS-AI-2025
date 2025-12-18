@@ -6,13 +6,16 @@ from openai import OpenAI
 import time 
 import datetime
 import re
+from dotenv import load_dotenv
 
 # ==============================================================================
-# 1. Configuration
+# 1. Configuration & Security
 # ==============================================================================
-YOUR_ACCESS_TOKEN = "EAAQUEA9objwBQOfM8zyMMTjYwlMP0sA5tCPcAcYP8I1occ5InZCNIKeunjDtUUpTm6zPtReWqX3fXkWyRZAF51eCYNuF5tRRELZC9H3fn6m40H6QzOPSFv2E2ZBcffTZCZBfnL4fcYIf6rzOYl8PBU1b7zjag48Tohzp4BYghZB3CkZBMml8N189VorClnjintEzfgZDZD"
-PHONE_NUMBER_ID = "943273875531695" 
-YOUR_VERIFY_TOKEN = "leaf_plant_secret_key" 
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env')) 
+
+YOUR_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID") 
+YOUR_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN") 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
 
 app = Flask(__name__)
@@ -48,38 +51,63 @@ def deduct_stock(product_name, qty_to_deduct):
         print(f"[STOCK UPDATE] {product_name} reduced by {qty_to_deduct}")
 
 # ==============================================================================
-# 3. New Prospect Handling (Clean Address Extraction)
+# 3. New Prospect Handling (WITH MEMORY)
 # ==============================================================================
-def handle_new_prospect(customer_number, customer_message):
+def handle_new_prospect(customer_number, customer_message, history):
     system_prompt = """
     You are Leaf Plant AI. A NEW user is messaging the farm.
-    1. Reply warmly and explain we need their neighborhood to find a local Leader.
-    2. PRIVACY: Explain that this neighborhood check helps protect their identity.
-    3. EXTRACTION: Add hidden tag: [[ADDRESS: Exact Neighborhood/Area]].
+    
+    1. GREETING: If they haven't provided a location yet, reply warmly and ask which neighborhood or area they are in.
+    2. PRIVACY: Explain that this neighborhood check helps protect their identity and ensures fresh delivery.
+    3. EXTRACTION: ONLY if the user mentions a specific area/neighborhood, add the hidden tag: [[ADDRESS: Exact Neighborhood/Area]].
     """
+    
+    # Build messages with context history
+    messages = [{"role": "system", "content": system_prompt}]
+    for h in history:
+        messages.append(h)
+    messages.append({"role": "user", "content": customer_message})
+
     try:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": customer_message}]
+            messages=messages
         )
         ai_reply = completion.choices[0].message.content
+        
         address_match = re.search(r"\[\[ADDRESS: (.*?)\]\]", ai_reply)
-        extracted_address = address_match.group(1) if address_match else "Unknown"
+        
+        if address_match:
+            extracted_address = address_match.group(1)
+            print(f"\n--- [DATA COLLECTED] ---")
+            print(f"Phone: {customer_number}")
+            print(f"AI Extracted Area: {extracted_address}")
+            print(f"------------------------\n")
 
-        leads_file = 'New_Leads_Waiting_List.xlsx'
-        new_lead = pd.DataFrame([{'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 'Phone': customer_number, 'Extracted Address': extracted_address, 'Status': 'Awaiting Leader Assignment'}])
+            leads_file = 'New_Leads_Waiting_List.xlsx'
+            new_lead = pd.DataFrame([{
+                'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 
+                'Phone': customer_number, 
+                'Extracted Address': extracted_address, 
+                'Status': 'Awaiting Leader Assignment'
+            }])
 
-        if not os.path.exists(leads_file): new_lead.to_excel(leads_file, index=False)
-        else: pd.concat([pd.read_excel(leads_file), new_lead], ignore_index=True).to_excel(leads_file, index=False)
-            
+            if not os.path.exists(leads_file): 
+                new_lead.to_excel(leads_file, index=False)
+            else: 
+                pd.concat([pd.read_excel(leads_file), new_lead], ignore_index=True).to_excel(leads_file, index=False)
+        else:
+            print(f"[CHAT] New user {customer_number} is in greeting phase.")
+
         return re.sub(r"\[\[ADDRESS: .*?\]\]", "", ai_reply).strip()
+
     except Exception as e:
-        # API FAIL-SAFE
-        print(f"\n[!!! API ERROR !!!] New Lead {customer_number} needs manual onboarding.")
-        return "Welcome to the farm! Our system is a bit slow right now, but a human salesperson will assist you with leader registration shortly."
+        if "Permission denied" in str(e):
+            print(f"\n[!!!] PLEASE CLOSE 'New_Leads_Waiting_List.xlsx'!")
+        return "Welcome to the farm! Could you let us know which neighborhood you are in?"
 
 # ==============================================================================
-# 4. AI Sales Engine (Existing Customers + Fail-Safe)
+# 4. AI Sales Engine
 # ==============================================================================
 def get_openai_response(customer_message, customer_id, leader_name, inventory_df):
     if not client: return "AI Offline."
@@ -96,11 +124,9 @@ def get_openai_response(customer_message, customer_id, leader_name, inventory_df
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        # Save to memory
         conversation_history[customer_id].append({"role": "user", "content": customer_message})
         conversation_history[customer_id].append({"role": "assistant", "content": ai_reply})
 
-        # ERP extraction
         if "[[DATA:" in ai_reply:
             match = re.search(r"\[\[DATA: (.*?)\]\]", ai_reply)
             if match:
@@ -115,31 +141,40 @@ def get_openai_response(customer_message, customer_id, leader_name, inventory_df
                     print(f"\n[!!! ERP SUCCESS !!!] Order logged for {customer_id}")
 
         return re.sub(r"\[\[DATA: .*?\]\]", "", ai_reply).strip()
-
     except Exception as e:
-        # API FAIL-SAFE ALERT
-        print(f"\n[!!! CRITICAL API FAILURE !!!]")
-        print(f"Customer: {customer_id} | Message: {customer_message}")
-        print(f"Error: {e}")
-        print(f"ACTION: Jump in manually on WhatsApp to secure the order!")
-        return "I'm having a slight connection issue with the farm database. Hang tight, a real salesperson will jump in to help you finish your order!"
+        return "I'm having a connection issue. A real salesperson will help soon!"
 
 # ==============================================================================
 # 5. Webhook Handling
 # ==============================================================================
+@app.route('/webhook', methods=['GET'])
+def verify():
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    if mode == 'subscribe' and token == YOUR_VERIFY_TOKEN:
+        return challenge, 200
+    return 'Verification failed', 403
+
 @app.route('/webhook', methods=['POST'])
 def handle_message():
     data = request.get_json()
-    inventory_df, customer_df, leader_df = load_excel_data() # Continuous link
+    inventory_df, customer_df, leader_df = load_excel_data()
     
     try:
         msg = data['entry'][0]['changes'][0]['value']['messages'][0]
         customer_number, msg_id, customer_message = msg['from'], msg['id'], msg['text']['body']
+        print(f"\n[INCOMING] {customer_number}: {customer_message}")
     except: return jsonify({"status": "error"}), 200
 
     if msg_id in processed_messages: return jsonify({"status": "duplicate"}), 200
     processed_messages.add(msg_id) 
 
+    # Handle conversation history for both types of users
+    if customer_number not in conversation_history:
+        conversation_history[customer_number] = []
+    
+    current_history = conversation_history[customer_number][-4:]
     cust_row = customer_df[customer_df['WA Phone Number'] == customer_number]
     
     if not cust_row.empty:
@@ -147,7 +182,12 @@ def handle_message():
         l_name = leader_df[leader_df['Group Leader ID'] == cust_row['Group Leader ID'].iloc[0]]['Leader Name'].iloc[0]
         reply = get_openai_response(customer_message, cust_id, l_name, inventory_df)
     else:
-        reply = handle_new_prospect(customer_number, customer_message)
+        # Pass history to prospect handler
+        reply = handle_new_prospect(customer_number, customer_message, current_history)
+
+    # Save to memory for the next message
+    conversation_history[customer_number].append({"role": "user", "content": customer_message})
+    conversation_history[customer_number].append({"role": "assistant", "content": reply})
 
     requests.post(f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages", 
                  headers={"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}"},
