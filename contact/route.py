@@ -11,7 +11,7 @@ def contact():
         phone = request.form.get('phone')
         message = request.form.get('message')
 
-        # --- SERVER-SIDE VALIDATION (Week 15 Requirement) --- [cite: 77, 128]
+        # --- SERVER-SIDE VALIDATION
         errors = {}
         if not name or len(name) < 2:
             errors['name'] = "Full name is required."

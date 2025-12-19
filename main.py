@@ -1,8 +1,6 @@
 import os
 from flask import Flask
-# Import the 'db' from your models file (in root)
 from models import db 
-# Import your contact blueprint
 from contact.route import contact_bp
 
 def create_app():
