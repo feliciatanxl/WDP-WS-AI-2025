@@ -21,7 +21,7 @@ body {
 .page-content {
     flex: 1 0 auto;
     box-sizing: border-box;
-    padding-top: 90px;
+    padding-top: 60px;
     padding-left: 80px;
     padding-right: 80px;
 }
