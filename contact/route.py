@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify
 from models import db, ContactInquiry 
 
 # Set template_folder to '.' so it looks inside the 'contact' folder
@@ -28,7 +28,8 @@ def contact():
         if not message or len(message.strip()) < 10:
             errors['message'] = "Message must be at least 10 characters."
 
-        # If there are validation errors, re-render the form with the errors
+        # If there are validation errors, re-render the form with errors
+        # (This handles cases where JS validation might be bypassed)
         if errors:
             return render_template('contact.html', errors=errors, form_data=form_data)
 
@@ -38,17 +39,13 @@ def contact():
             db.session.add(new_inquiry)
             db.session.commit()
             
-            # Redirect to the thankyou page with the new ID
-            return redirect(url_for('contact.thankyou', inquiry_id=new_inquiry.id))
+            # UPDATED: Return a success status instead of a redirect
+            # This tells your JavaScript fetch() to trigger the modal
+            return "Success", 200
+            
         except Exception as e:
             db.session.rollback()
-            return f"Database Error: {str(e)}"
+            return f"Database Error: {str(e)}", 500
 
     # When visiting via GET (first load), pass empty dicts so the HTML loads correctly
     return render_template('contact.html', errors=errors, form_data=form_data)
-
-@contact_bp.route('/thankyou/<int:inquiry_id>')
-def thankyou(inquiry_id):
-    # Retrieve the specific inquiry to display on the thank you page
-    inquiry = ContactInquiry.query.get_or_404(inquiry_id)
-    return render_template('thankyou.html', inquiry=inquiry)
