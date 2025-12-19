@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify
 from models import db, ContactInquiry 
 
-# Set template_folder to '.' so it looks inside the 'contact' folder
-contact_bp = Blueprint('contact', __name__, template_folder='.')
+# FIX: Remove template_folder='.' so it looks in the global templates folder
+contact_bp = Blueprint('contact', __name__)
 
 @contact_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
@@ -28,9 +28,9 @@ def contact():
         if not message or len(message.strip()) < 10:
             errors['message'] = "Message must be at least 10 characters."
 
-        # If there are validation errors, re-render the form with errors
-        # (This handles cases where JS validation might be bypassed)
+        # If there are validation errors, re-render the form
         if errors:
+            # Looks in /templates/contact.html
             return render_template('contact.html', errors=errors, form_data=form_data)
 
         # --- DATABASE LOGIC (The 'C' in CRUD) ---
@@ -39,13 +39,11 @@ def contact():
             db.session.add(new_inquiry)
             db.session.commit()
             
-            # UPDATED: Return a success status instead of a redirect
-            # This tells your JavaScript fetch() to trigger the modal
             return "Success", 200
             
         except Exception as e:
             db.session.rollback()
             return f"Database Error: {str(e)}", 500
 
-    # When visiting via GET (first load), pass empty dicts so the HTML loads correctly
+    # GET request: loads the page
     return render_template('contact.html', errors=errors, form_data=form_data)

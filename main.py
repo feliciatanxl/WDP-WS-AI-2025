@@ -1,7 +1,6 @@
 import os
 from flask import Flask, send_from_directory, render_template
-from models import db 
-# Ensure contact/route.py has contact_bp defined
+from models import db, ContactInquiry # Added ContactInquiry to imports
 from contact.route import contact_bp 
 
 def create_app():
@@ -17,7 +16,6 @@ def create_app():
     db.init_app(app)
 
     # 3. Register Blueprints
-    # This connects the routes defined in contact/route.py
     app.register_blueprint(contact_bp)
 
     # 4. Favicon Route
@@ -29,26 +27,48 @@ def create_app():
             mimetype='image/png'
         )
 
-    # 5. Global Routes (Linking the templates folder)
+    # 5. Global Routes 
     @app.route('/')
     def index():
         return render_template('index.html')
 
     @app.route('/about')
     def about():
-        return render_template('about/about.html')
+        return render_template('about.html')
 
     @app.route('/product')
     def product():
-        return render_template('product/product.html')
+        return render_template('product.html')
 
     @app.route('/article')
     def article():
-        return render_template('article/article.html')
+        return render_template('article.html')
 
     @app.route('/account')
     def account():
-        return render_template('account/account.html')
+        return render_template('account.html')
+
+    # NEW: Route for the Shopping Bag
+    @app.route('/orders')
+    def orders():
+        return render_template('orders.html')
+
+    # NEW: Route for Secure Payment
+    @app.route('/payment')
+    def payment():
+        return render_template('payment.html')
+
+    # NEW: Route for Order Success & Review
+    @app.route('/review')
+    def review():
+        return render_template('review.html')
+
+    # NEW: Admin Dashboard (FETCING DATA FROM DB)
+    @app.route('/admin/dashboard')
+    def admin_dashboard():
+        # Query all inquiries from the database to display in the admin table
+        inquiries = ContactInquiry.query.order_by(ContactInquiry.created_at.desc()).all()
+        return render_template('admin.html', inquiries=inquiries)
         
     # 6. Create Tables
     with app.app_context():

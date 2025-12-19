@@ -5,15 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Our Produce</title>
-    <link rel="icon" type="image/png" href="../image/Green Minimalist Leaf Plant Logo.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo.png') }}">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/footer.css">
-    <link rel="stylesheet" href="../css/navbar.css">
-    <link rel="stylesheet" href="product.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='product.css') }}">
 </head>
 
 <body>
@@ -21,8 +21,8 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
             <div class="container">
-                <a class="navbar-brand" href="../index/index.html">
-                    <img src="../image/Green Minimalist Leaf Plant Logo.png" alt="Logo" height="70">
+                <a class="navbar-brand" href="/">
+                    <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo.png') }}" alt="Logo" height="70">
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -31,15 +31,15 @@
 
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link" href="../about/about.html">About Us</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/about">About Us</a></li>
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="../products/product.html">
+                            <a class="nav-link active" aria-current="page" href="/product">
                                 Our Produce
                             </a>
                         </li>
-                        <li class="nav-item"><a class="nav-link" href="../article/article.html">Articles</a></li>
-                        <li class="nav-item"><a class="nav-link" href="../contact/contact.html">Contact Us</a></li>
-                        <li class="nav-item"><a class="nav-link" href="../account/account.html" id="accountLink">Account</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/article">Articles</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('contact.contact') }}">Contact Us</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/account" id="accountLink">Account</a></li>
                     </ul>
                 </div>
             </div>
@@ -50,7 +50,6 @@
         <div class="row">
 
             <div class="col-md-3">
-
                 <h6 class="fw-bold mb-2">SEARCH PRODUCTS:</h6>
                 <div class="search-box mb-4">
                     <input type="text" id="search" placeholder="Search products...">
@@ -59,22 +58,18 @@
 
                 <h6 class="fw-bold mb-2">PRODUCT CATEGORIES</h6>
                 <ul class="product-category-list">
-
                     <li><a href="#" data-category="all">All</a></li>
                     <li><a href="#" data-category="leafy">Leafy Greens</a></li>
                     <li><a href="#" data-category="lettuce">Lettuce</a></li>
                     <li><a href="#" data-category="chinese">Chinese Vegetables</a></li>
-                    <li><a href="#">Bundles</a></li>
                 </ul>
-
             </div>
 
             <div class="col-md-9">
                 <div class="row g-4">
-
                     <div class="col-md-4 produce-item" data-id="1" data-category="leafy">
                         <div class="card shadow-sm">
-                            <img src="../image/mizuna.png" alt="Mizuna">
+                            <img src="{{ url_for('static', filename='image/mizuna.png') }}" alt="Mizuna">
                             <div class="card-body">
                                 <h5>Mizuna</h5>
                                 <p>$2.50</p>
@@ -85,7 +80,7 @@
 
                     <div class="col-md-4 produce-item" data-id="2" data-category="lettuce">
                         <div class="card shadow-sm">
-                            <img src="../image/chrisgreenlettuce.jpg" alt="Chris Green Lettuce">
+                            <img src="{{ url_for('static', filename='image/chrisgreenlettuce.jpg') }}" alt="Chris Green Lettuce">
                             <div class="card-body">
                                 <h5>Chris Green Lettuce</h5>
                                 <p>$2.80</p>
@@ -96,7 +91,7 @@
 
                     <div class="col-md-4 produce-item" data-id="3" data-category="lettuce">
                         <div class="card shadow-sm">
-                            <img src="../image/lollo_bionda_lettuce.jpg" alt="Lollo Bionda Lettuce">
+                            <img src="{{ url_for('static', filename='image/lollo_bionda_lettuce.jpg') }}" alt="Lollo Bionda Lettuce">
                             <div class="card-body">
                                 <h5>Lollo Bionda Lettuce</h5>
                                 <p>$3.20</p>
@@ -107,7 +102,7 @@
 
                     <div class="col-md-4 produce-item" data-id="4" data-category="lettuce">
                         <div class="card shadow-sm">
-                            <img src="../image/cos_lettuce.jpg" alt="Cos Lettuce">
+                            <img src="{{ url_for('static', filename='image/cos_lettuce.jpg') }}" alt="Cos Lettuce">
                             <div class="card-body">
                                 <h5>Cos Lettuce</h5>
                                 <p>$3.00</p>
@@ -118,7 +113,7 @@
 
                     <div class="col-md-4 produce-item" data-id="5" data-category="chinese">
                         <div class="card shadow-sm">
-                            <img src="../image/red_pak_choy.jpg" alt="Red Pak Choy">
+                            <img src="{{ url_for('static', filename='image/red_pak_choy.jpg') }}" alt="Red Pak Choy">
                             <div class="card-body">
                                 <h5>Red Pak Choy</h5>
                                 <p>$4.20</p>
@@ -129,7 +124,7 @@
 
                     <div class="col-md-4 produce-item" data-id="6" data-category="chinese">
                         <div class="card shadow-sm">
-                            <img src="../image/xiaobaicai.jpg" alt="Xiao Bai Cai">
+                            <img src="{{ url_for('static', filename='image/xiaobaicai.jpg') }}" alt="Xiao Bai Cai">
                             <div class="card-body">
                                 <h5>Xiao Bai Cai</h5>
                                 <p>$2.80</p>
@@ -140,7 +135,7 @@
 
                     <div class="col-md-4 produce-item" data-id="7" data-category="chinese">
                         <div class="card shadow-sm">
-                            <img src="../image/jiubaicai.jpg" alt="Jiu Bai Cai">
+                            <img src="{{ url_for('static', filename='image/jiubaicai.jpg') }}" alt="Jiu Bai Cai">
                             <div class="card-body">
                                 <h5>Jiu Bai Cai</h5>
                                 <p>$3.30</p>
@@ -151,7 +146,7 @@
 
                     <div class="col-md-4 produce-item" data-id="8" data-category="chinese">
                         <div class="card shadow-sm">
-                            <img src="../image/maobai.jpg" alt="Mao Bai">
+                            <img src="{{ url_for('static', filename='image/maobai.jpg') }}" alt="Mao Bai">
                             <div class="card-body">
                                 <h5>Mao Bai</h5>
                                 <p>$3.40</p>
@@ -159,10 +154,8 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -172,7 +165,7 @@
             <h2 id="detail-name"></h2>
             <p id="detail-price"></p>
             <p id="detail-stock" class="text-muted"></p>
-            <ul id="detail-description" class="detail-description"></ul> 		<div class="quantity-wrapper">
+            <ul id="detail-description" class="detail-description"></ul>        <div class="quantity-wrapper">
                 <div class="quantity-selector">
                     <div class="quantity-btn" id="qty-minus">−</div>
                     <span class="quantity-number" id="qty-number">1</span>
@@ -185,7 +178,8 @@
             </div>
         </div>
     </div>
-    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent" aria-label="Chat with AI Agent">
+
+    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent">
         <i class="bi bi-whatsapp"></i>
     </a>
 
@@ -196,25 +190,21 @@
     <footer class="custom-footer">
         <div class="footer-top">
             <div class="footer-logo">
-                <img src="../image/Green Minimalist Leaf Plant Logo_Name.png" alt="Logo">
+                <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo_Name.png') }}" alt="Logo">
             </div>
-
             <div class="footer-info">
                 <h5>Address</h5>
                 <p>123 Main Street<br>Singapore 123456</p>
             </div>
-
             <div class="footer-info">
                 <h5>Email</h5>
                 <p>info@AI.com.sg</p>
             </div>
-
             <div class="footer-socials">
                 <a href="#"><i class="bi bi-facebook"></i></a>
                 <a href="#"><i class="bi bi-instagram"></i></a>
             </div>
         </div>
-
         <hr>
         <p class="footer-copy">&copy; 2025 WEB DEVELOPMENT PROJECT TEAM AI.</p>
     </footer>
@@ -223,7 +213,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- 1. User Account Logic ---
+            // --- 1. Account Redirection Logic ---
             function updateAccountLink() {
                 const accountLink = document.getElementById("accountLink");
                 const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -231,27 +221,22 @@
 
                 if (accountLink) {
                     if (isLoggedIn) {
-                        accountLink.classList.remove('active');
                         if (userRole === 'admin') {
                             accountLink.textContent = 'Admin Panel';
-                            // SCRIPT LINK CORRECTED: (../admin/admin.html)
-                            accountLink.href = '../admin/admin.html';
+                            accountLink.href = '/admin/dashboard';
                         } else {
                             accountLink.textContent = 'User';
-                            // SCRIPT LINK CORRECTED: (../myaccount/myaccount.html)
-                            accountLink.href = '../myaccount/myaccount.html';
+                            accountLink.href = '/account';
                         }
                     } else {
                         accountLink.textContent = 'Account';
-                        // SCRIPT LINK CORRECTED: (../account/account.html)
-                        accountLink.href = '../account/account.html';
-                        accountLink.classList.remove('active');
+                        accountLink.href = '/account';
                     }
                 }
             }
             updateAccountLink();
 
-            // --- 2. Product Data & Selection ---
+            // --- 2. Modal and Cart Logic ---
             const produceItems = document.querySelectorAll('.produce-item');
             const modal = document.getElementById('product-detail');
             const closeBtn = document.getElementById('close-detail');
@@ -265,7 +250,6 @@
             let currentProductId = null;
             let currentQty = 1;
 
-            // MASTER DATA Source
             const products = {
                 1: { name: "Mizuna", price: "$2.50", stock: 0, description: ["A crisp, peppery Japanese leafy green.", "Perfect for salads and garnishes."] },
                 2: { name: "Chris Green Lettuce", price: "$2.80", stock: 10, description: ["A vibrant, tender lettuce variety.", "Sweet and crunchy."] },
@@ -277,16 +261,14 @@
                 8: { name: "Mao Bai", price: "$3.40", stock: 14, description: ["Traditional leafy cabbage variety.", "Soft texture and mild flavor."] }
             };
 
-            // Open Modal Logic
             produceItems.forEach(item => {
                 item.querySelector('.view-detail-btn').addEventListener('click', () => {
                     const id = item.dataset.id;
-                    currentProductId = parseInt(id); // Ensure ID is integer
+                    currentProductId = parseInt(id);
                     const product = products[id];
 
                     nameEl.textContent = product.name;
                     priceEl.textContent = product.price;
-
                     descEl.innerHTML = "";
                     product.description.forEach(line => {
                         const li = document.createElement("li");
@@ -294,171 +276,87 @@
                         descEl.appendChild(li);
                     });
 
-                    // Reset Quantity and Buttons on open
                     currentQty = 1;
                     qtyEl.textContent = currentQty;
-
-                    // Reset button style
                     addToCartBtn.textContent = "Add To Cart";
-                    addToCartBtn.classList.remove('btn-dark');
-                    addToCartBtn.classList.add('btn-success');
+                    addToCartBtn.classList.replace('btn-dark', 'btn-success');
                     addToCartBtn.disabled = false;
 
-                    // Stock Logic
                     if (product.stock > 0) {
                         stockText.textContent = "Available stock: " + product.stock;
-                        stockText.classList.remove('text-danger');
-                        stockText.classList.add('text-muted');
+                        stockText.className = "text-muted";
                     } else {
                         stockText.textContent = "Out of Stock";
-                        stockText.classList.remove('text-muted');
-                        stockText.classList.add('text-danger');
+                        stockText.className = "text-danger";
                         addToCartBtn.disabled = true;
                         addToCartBtn.textContent = "Sold Out";
                     }
-
                     modal.classList.add("active");
                 });
             });
 
-            // Close Modal Logic
             closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
-
-            // --- 3. Quantity Logic ---
-            const qtyMinus = document.getElementById("qty-minus");
-            const qtyPlus = document.getElementById("qty-plus");
-
-            qtyMinus.addEventListener("click", () => {
-                if (currentQty > 1) {
-                    currentQty--;
-                    qtyEl.textContent = currentQty;
-                }
+            
+            document.getElementById("qty-minus").addEventListener("click", () => {
+                if (currentQty > 1) { currentQty--; qtyEl.textContent = currentQty; }
             });
 
-            qtyPlus.addEventListener("click", () => {
+            document.getElementById("qty-plus").addEventListener("click", () => {
                 if (!currentProductId) return;
-                const maxStock = products[currentProductId].stock;
-
-                if (currentQty < maxStock) {
-                    currentQty++;
-                    qtyEl.textContent = currentQty;
-                } else {
-                    // Visual feedback for hitting limit
-                    qtyEl.style.color = 'red';
-                    setTimeout(() => qtyEl.style.color = 'inherit', 300);
+                if (currentQty < products[currentProductId].stock) {
+                    currentQty++; qtyEl.textContent = currentQty;
                 }
             });
 
-            // --- 4. Add to Cart Logic (THE CRITICAL FIX) ---
             addToCartBtn.addEventListener('click', () => {
                 if (!currentProductId) return;
-
                 const product = products[currentProductId];
-
-                // Double check current selection vs stock
-                if (currentQty > product.stock) {
-                    alert("Sorry, not enough stock available.");
-                    return;
-                }
-
-                // Get Current Cart
                 let cart = JSON.parse(localStorage.getItem("farmCart")) || [];
-
-                // FIND EXISTING ITEM
-                // We use findIndex to see if this product ID is already in the array
                 let existingItemIndex = cart.findIndex(item => item.id === currentProductId);
 
                 if (existingItemIndex !== -1) {
-                    // ITEM EXISTS: Update Quantity
                     let newTotalQty = cart[existingItemIndex].qty + currentQty;
-
-                    // Check stock limit against the NEW total
                     if (newTotalQty > product.stock) {
-                        alert(`You already have ${cart[existingItemIndex].qty} in your cart. We only have ${product.stock} total in stock.`);
+                        alert(`You already have ${cart[existingItemIndex].qty} in your cart. Max stock is ${product.stock}.`);
                         return;
                     }
-
                     cart[existingItemIndex].qty = newTotalQty;
-
                 } else {
-                    // ITEM IS NEW: Add new object to array
-                    cart.push({
-                        id: currentProductId,
-                        name: product.name,
-                        price: product.price,
-                        qty: currentQty
-                    });
+                    cart.push({ id: currentProductId, name: product.name, price: product.price, qty: currentQty });
                 }
 
-                // Save back to storage
                 localStorage.setItem("farmCart", JSON.stringify(cart));
-
-                // Visual Feedback before redirect
                 addToCartBtn.textContent = "Added!";
-                addToCartBtn.classList.remove('btn-success');
-                addToCartBtn.classList.add('btn-dark');
-
-                setTimeout(() => {
-                    // REDIRECT LINK CORRECTED: (../orders/orders.html)
-                    window.location.href = "../orders/orders.html";
-                }, 400);
+                setTimeout(() => { window.location.href = "/orders"; }, 400);
             });
 
-            // --- 5. Scroll to Top & Search ---
+            // Scroll Top
             const scrollTopBtn = document.getElementById("scrollTopBtn");
-
-            window.onscroll = function () {
-                if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
-                    scrollTopBtn.style.display = "block";
-                } else {
-                    scrollTopBtn.style.display = "none";
-                }
+            window.onscroll = () => {
+                scrollTopBtn.style.display = (window.scrollY > 200) ? "block" : "none";
             };
+            scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
-            scrollTopBtn.addEventListener("click", () => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            });
-
+            // Search
             document.getElementById("search").addEventListener("keyup", function () {
                 const text = this.value.toLowerCase();
-                const items = document.querySelectorAll(".produce-item");
-
-                items.forEach(item => {
+                produceItems.forEach(item => {
                     const name = item.querySelector("h5").innerText.toLowerCase();
                     item.style.display = name.includes(text) ? "" : "none";
                 });
             });
 
-        });
-
-        // --- CATEGORY FILTER ---
-        const categoryLinks = document.querySelectorAll(".product-category-list a");
-
-        categoryLinks.forEach(link => {
-            link.addEventListener("click", e => {
-                e.preventDefault();
-
-                const selectedCategory = link.dataset.category;
-                const items = document.querySelectorAll(".produce-item");
-
-                items.forEach(item => {
-                    if (selectedCategory === "all" || item.dataset.category === selectedCategory) {
-                        item.style.display = "";
-                    } else {
-                        item.style.display = "none";
-                    }
+            // Category Filter
+            document.querySelectorAll(".product-category-list a").forEach(link => {
+                link.addEventListener("click", e => {
+                    e.preventDefault();
+                    const cat = link.dataset.category;
+                    produceItems.forEach(item => {
+                        item.style.display = (cat === "all" || item.dataset.category === cat) ? "" : "none";
+                    });
                 });
-
-                // Optional active state
-                categoryLinks.forEach(l => l.classList.remove("active"));
-                link.classList.add("active");
             });
         });
-
-
     </script>
-
 </body>
-
 </html>

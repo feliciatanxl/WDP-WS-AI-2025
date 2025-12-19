@@ -4,35 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us</title>
-    <link rel="icon" type="image/png" href="../image/Green Minimalist Leaf Plant Logo.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo.png') }}">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/footer.css">
-    <link rel="stylesheet" href="../css/navbar.css">
-    <link rel="stylesheet" href="about.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="../index/index.html">
-                <img src="../image/Green Minimalist Leaf Plant Logo.png" alt="Logo Png" height="70">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo.png') }}" alt="Logo Png" height="70">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="../about/about.html">About Us</a></li>
-                    <li class="nav-item"><a class="nav-link" href="../products/product.html">Our Produce</a></li>
-                    <li class="nav-item"><a class="nav-link" href="../article/article.html">Articles</a></li>
-                    <li class="nav-item"><a class="nav-link" aria-current="page" href="../contact/contact.html">Contact Us</a></li>
-                    <li class="nav-item"><a class="nav-link" href="../account/account.html" id="accountLink">Account</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/about">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/product">Our Produce</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/article">Articles</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('contact.contact') }}">Contact Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/account" id="accountLink">Account</a></li>
                 </ul>
             </div>
         </div>
     </nav>
+
     <main class="page-content">
         <section class="about-hero py-5 main-content-offset">
             <div class="container">
@@ -51,11 +53,12 @@
                         </p>
                     </div>
                     <div class="col-lg-6 order-lg-2 order-1">
-                        <img src="../image/4.jpg" alt="Team members working in a bright office environment" class="img-fluid rounded-3 shadow-lg">
+                        <img src="{{ url_for('static', filename='image/4.jpg') }}" alt="Team members working" class="img-fluid rounded-3 shadow-lg">
                     </div>
                 </div>
             </div>
         </section>
+
         <section class="why-choose-us-banner">
             <div class="counter-overlap-wrapper">
                 <div class="container">
@@ -80,6 +83,7 @@
                 </div>
             </div>
         </section>
+
         <section class="py-5">
             <div class="container my-5">
                 <div class="text-center mb-5">
@@ -89,7 +93,7 @@
                 <div class="row align-items-center justify-content-center g-5">
                     <div class="col-lg-5">
                         <div class="vision-image-container shadow-lg">
-                            <img src="../image/2.jpg" alt="Hand holding a vintage lightbulb" class="img-fluid rounded-4">
+                            <img src="{{ url_for('static', filename='image/2.jpg') }}" alt="Hand holding lightbulb" class="img-fluid rounded-4">
                         </div>
                     </div>
                     <div class="col-lg-7">
@@ -112,16 +116,18 @@
             </div>
         </section>
     </main>
-    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent" aria-label="Chat with AI Agent">
+
+    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent">
         <i class="bi bi-whatsapp"></i>
     </a>
-    <button id="scrollTopBtn" title="Go to top" aria-label="Scroll to Top">
+    <button id="scrollTopBtn" title="Go to top">
         <i class="bi bi-arrow-up"></i>
     </button>
+
     <footer class="custom-footer">
         <div class="footer-top">
             <div class="footer-logo">
-                <img src="../image/Green Minimalist Leaf Plant Logo_Name.png" alt="AI Logo">
+                <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo_Name.png') }}" alt="AI Logo">
             </div>
             <div class="footer-info">
                 <h5>Address</h5>
@@ -139,36 +145,33 @@
         <hr>
         <p class="footer-copy">Copyright &copy; 2025 WEB DEVELOPMENT PROJECT TEAM AI.</p>
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function updateAccountLink() {
             const accountLink = document.getElementById("accountLink");
-
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
             const userRole = localStorage.getItem('userRole');
 
             if (accountLink) {
                 if (isLoggedIn) {
                     accountLink.classList.remove('active');
-
                     if (userRole === 'admin') {
                         accountLink.textContent = 'Admin Panel';
-                        // SCRIPT LINK CORRECTED FOR HYBRID VIEW: (../admin/admin.html)
-                        accountLink.href = '../admin/admin.html';
+                        accountLink.href = '/admin/dashboard'; 
                     } else {
                         accountLink.textContent = 'User';
-                        // SCRIPT LINK CORRECTED FOR HYBRID VIEW: (../myaccount/myaccount.html)
-                        accountLink.href = '../myaccount/myaccount.html';
+                        accountLink.href = '/account'; 
                     }
                 } else {
                     accountLink.textContent = 'Account';
-                    // SCRIPT LINK CORRECTED FOR HYBRID VIEW: (../account/account.html)
-                    accountLink.href = '../account/account.html';
+                    accountLink.href = '/account';
                     accountLink.classList.remove('active');
                 }
             }
         }
 
+        // Counter logic preserved from your design
         function startCounter(target) {
             const endValue = parseInt(target.getAttribute('data-count').replace(/[^0-9]/g, ''));
             const duration = 2000;
@@ -176,14 +179,10 @@
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-
                 let currentValue = Math.floor(progress * endValue);
-
                 let displayValue = currentValue.toLocaleString();
-
                 let suffix = target.getAttribute('data-count').replace(/[0-9,]/g, '').trim();
                 target.textContent = displayValue + suffix;
-
                 if (progress < 1) {
                     window.requestAnimationFrame(step);
                 } else {
@@ -195,16 +194,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             updateAccountLink();
-
             const counters = document.querySelectorAll('.stat-number');
-
-            const observerOptions = {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.5
-            };
-
-            const observer = new IntersectionObserver((entries, observer) => {
+            const observerOptions = { threshold: 0.5 };
+            const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         startCounter(entry.target);
@@ -212,10 +204,7 @@
                     }
                 });
             }, observerOptions);
-
-            counters.forEach(counter => {
-                observer.observe(counter);
-            });
+            counters.forEach(counter => observer.observe(counter));
 
             const scrollTopBtn = document.getElementById("scrollTopBtn");
             window.onscroll = function () {
@@ -226,12 +215,8 @@
                 }
             };
             scrollTopBtn.addEventListener('click', () => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
-
         });
     </script>
 </body>
