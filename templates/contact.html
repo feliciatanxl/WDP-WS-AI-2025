@@ -175,31 +175,23 @@
     <script>
         function updateAccountLink() {
             const accountLink = document.getElementById("accountLink");
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            const userRole = localStorage.getItem('userRole');
-
             if (accountLink) {
-                if (isLoggedIn) {
-                    accountLink.classList.remove('active');
-                    if (userRole === 'admin') {
-                        accountLink.textContent = 'Admin Panel';
-                        // UPDATED: Linked to your Flask route
-                        accountLink.href = '/admin/dashboard'; 
-                    } else {
-                        accountLink.textContent = 'User';
-                        // UPDATED: Linked to your Flask route
-                        accountLink.href = '/account'; 
-                    }
+                // isLoggedIn check removed for direct testing/viewing
+                const userRole = localStorage.getItem('userRole');
+
+                if (userRole === 'admin') {
+                    accountLink.textContent = 'Admin Panel';
+                    accountLink.href = '/admin/dashboard'; 
+                } else if (userRole === 'user') {
+                    accountLink.textContent = 'User Dashboard';
+                    accountLink.href = '/account'; 
                 } else {
                     accountLink.textContent = 'Account';
-                    // UPDATED: Linked to your Flask route
                     accountLink.href = '/account';
-                    accountLink.classList.remove('active');
                 }
             }
         }
 
-        // Error display and Form Validation functions remain unchanged as they work with your design
         function displayError(inputElement, message) {
             const errorDiv = document.getElementById(inputElement.name + 'Error');
             if (errorDiv) {
@@ -276,8 +268,6 @@
                     event.preventDefault(); 
                     if (validateContactForm()) {
                         const formData = new FormData(contactForm);
-                        
-                        // Action matches your Flask blueprint route
                         fetch("{{ url_for('contact.contact') }}", {
                             method: "POST",
                             body: formData

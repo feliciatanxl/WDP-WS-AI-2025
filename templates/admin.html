@@ -88,7 +88,7 @@
                                 </div>
                             </div>
                         </div>
-                        </div>
+                    </div>
 
                     <div id="customer-service" class="user-section">
                         <div class="inquiry-header mb-4">
@@ -143,12 +143,18 @@
                         </div>
                     </div>
 
-                    </div>
+                    <div id="products" class="user-section"><h1>Products</h1></div>
+                    <div id="orders" class="user-section"><h1>Orders</h1></div>
+                    <div id="customers" class="user-section"><h1>Customers</h1></div>
+                    <div id="analytics" class="user-section"><h1>Analytics</h1></div>
+                    <div id="settings" class="user-section"><h1>Settings</h1></div>
+
+                </div>
             </div>
         </div>
     </main>
 
-     <footer class="custom-footer">
+    <footer class="custom-footer">
         <div class="footer-top">
             <div class="footer-logo">
                 <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo_Name.png') }}" alt="AI Logo">
@@ -172,29 +178,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const IS_LOGGED_IN = 'isLoggedIn';
-        const USER_ROLE = 'userRole';
-
-        function checkAdminAccess() {
-            const isLoggedIn = localStorage.getItem(IS_LOGGED_IN) === 'true';
-            const userRole = localStorage.getItem(USER_ROLE);
-
-            if (!isLoggedIn || userRole !== 'admin') {
-                alert('🚫 Access Denied. You must log in as an administrator.');
-                // Redirection updated to Flask route
-                window.location.href = '/account';
-                return false;
-            }
-            return true;
-        }
+        // Removed checkAdminAccess() to allow free viewing of the page
 
         function updateAccountLinkState() {
             const accountLink = document.getElementById('accountLink');
-            const isLoggedIn = localStorage.getItem(IS_LOGGED_IN) === 'true';
-            const userRole = localStorage.getItem(USER_ROLE);
+            const userRole = localStorage.getItem('userRole');
 
             if (accountLink) {
-                if (isLoggedIn && userRole === 'admin') {
+                if (userRole === 'admin') {
                     accountLink.textContent = 'Admin Panel';
                     accountLink.href = '/admin/dashboard';
                     accountLink.classList.add('active');
@@ -207,24 +198,27 @@
 
         function logoutAdmin(event) {
             event.preventDefault();
-            localStorage.setItem(IS_LOGGED_IN, 'false');
-            localStorage.removeItem(USER_ROLE);
+            localStorage.setItem('isLoggedIn', 'false');
+            localStorage.removeItem('userRole');
             alert('Admin has been logged out successfully.');
             window.location.href = '/'; 
         }
 
-        // Section switching logic preserved...
         window.showAdminSection = function (event, sectionId) {
             event.preventDefault();
+            // Hide all sections
             document.querySelectorAll('.user-section').forEach(s => s.classList.remove('active'));
+            // Deactivate all sidebar links
             document.querySelectorAll('.sidebar-menu .nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
+            
+            // Show target section and activate clicked link
+            const target = document.getElementById(sectionId);
+            if(target) target.classList.add('active');
             event.currentTarget.classList.add('active');
             return false;
         }
 
         window.addEventListener('DOMContentLoaded', function () {
-            if (!checkAdminAccess()) return;
             updateAccountLinkState();
         });
     </script>

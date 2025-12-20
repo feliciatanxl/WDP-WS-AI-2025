@@ -59,22 +59,21 @@
                                 <div class="col-md-6">
                                     <label for="firstName" class="form-label">First Name</label>
                                     <input type="text" class="form-control" id="firstName" value="Jane" required minlength="2">
-                                    <div class="invalid-feedback">Please enter your first name (minimum 2 characters).</div>
+                                    <div class="invalid-feedback">Please enter your first name.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="lastName" class="form-label">Last Name</label>
                                     <input type="text" class="form-control" id="lastName" value="Doe" required minlength="2">
-                                    <div class="invalid-feedback">Please enter your last name (minimum 2 characters).</div>
+                                    <div class="invalid-feedback">Please enter your last name.</div>
                                 </div>
                                 <div class="col-12">
                                     <label for="email" class="form-label">Email Address</label>
                                     <input type="email" class="form-control" id="email" value="jane.doe@example.com" readonly>
-                                    <div class="form-text">Email cannot be changed here. Contact support to update it.</div>
                                 </div>
                                 <div class="col-12">
                                     <label for="address" class="form-label">Default Shipping Address</label>
                                     <textarea class="form-control" id="address" required minlength="10">Blk 123, Jurong East St 12, #04-56</textarea>
-                                    <div class="invalid-feedback">Please provide a valid shipping address (minimum 10 characters).</div>
+                                    <div class="invalid-feedback">Please provide a valid shipping address.</div>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i> Save Changes</button>
@@ -101,10 +100,10 @@
                                         <td>#202512-401</td>
                                         <td>Dec 12, 2025</td>
                                         <td>$58.00</td>
-                                        <td><span class="status-delivered">Delivered</span></td>
+                                        <td><span class="badge bg-success">Delivered</span></td>
                                         <td><button class="btn btn-sm btn-outline-secondary">Details</button></td>
                                     </tr>
-                                    </tbody>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -112,11 +111,11 @@
                     <div id="my-payment" class="user-section">
                         <h1 class="display-6 text-primary-green fw-bold mb-4">Payment Methods</h1>
                         <div class="alert alert-info">
-                            <strong>Securely Managed:</strong> All payment details are tokenized and managed by our secure payment gateway.
+                            <strong>Securely Managed:</strong> All payment details are tokenized.
                         </div>
                         <ul class="list-group mb-4">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div><i class="bi bi-credit-card-2-front me-2"></i> VISA ending in 4242 (Default)</div>
+                                <div><i class="bi bi-credit-card-2-front me-2"></i> VISA ending in 4242</div>
                                 <button class="btn btn-sm btn-outline-danger">Remove</button>
                             </li>
                         </ul>
@@ -129,16 +128,11 @@
                         <form id="passwordForm" class="needs-validation" novalidate onsubmit="return validatePasswordForm(event)">
                             <div class="mb-3">
                                 <label for="currentPassword" class="form-label">Current Password</label>
-                                <input type="password" class="form-control" id="currentPassword" required minlength="8">
+                                <input type="password" class="form-control" id="currentPassword" required>
                             </div>
                             <div class="mb-3">
                                 <label for="newPassword" class="form-label">New Password</label>
                                 <input type="password" class="form-control" id="newPassword" required minlength="8">
-                                <div class="invalid-feedback" id="newPasswordFeedback">New password must be at least 8 characters long.</div>
-                            </div>
-                            <div class="mb-4">
-                                <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirmPassword" required minlength="8">
                             </div>
                             <button type="submit" class="btn btn-warning"><i class="bi bi-lock me-2"></i> Change Password</button>
                         </form>
@@ -148,42 +142,25 @@
         </div>
     </main>
 
-    <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent">
-        <i class="bi bi-whatsapp"></i>
-    </a>
-    <button id="scrollTopBtn" title="Go to top"><i class="bi bi-arrow-up"></i></button>
-
     <footer class="custom-footer">
         <div class="footer-top">
             <div class="footer-logo">
                 <img src="{{ url_for('static', filename='image/Green Minimalist Leaf Plant Logo_Name.png') }}" alt="AI Logo">
             </div>
-            <div class="footer-info">
-                <h5>Address</h5>
-                <p>123 Main Street<br>Singapore 123456</p>
             </div>
-            <div class="footer-info">
-                <h5>Email</h5>
-                <p>info@AI.com.sg</p>
-            </div>
-            <div class="footer-socials">
-                <a href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
-                <a href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
-            </div>
-        </div>
         <hr>
         <p class="footer-copy">Copyright &copy; 2025 WEB DEVELOPMENT PROJECT TEAM AI.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Redirect Logic for Flask Routes
+        // Redirect Logic for Flask Routes (LOGGED IN CHECK REMOVED)
         function logoutUser(event) {
             event.preventDefault();
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('userRole');
             alert('You have been logged out successfully.');
-            window.location.href = '/'; // Updated to home route
+            window.location.href = '/'; 
         }
 
         window.showUserSection = function (event, sectionId) {
@@ -193,14 +170,12 @@
             document.getElementById(sectionId).classList.add('active');
             event.currentTarget.classList.add('active');
             
-            // Updated pushState to match route
             if (window.history.pushState) {
                 window.history.pushState(null, null, '/account#' + sectionId);
             }
             return false;
         }
 
-        // Form Validations preserved
         window.validateProfileForm = function (event) {
             const form = document.getElementById('profileForm');
             event.preventDefault();
@@ -214,11 +189,12 @@
         }
 
         window.addEventListener('DOMContentLoaded', function () {
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            if (!isLoggedIn) {
-                alert('Please log in to view your account details.');
-                window.location.href = '/account'; // Redirect to login route
-                return;
+            // LOGIN GUARD REMOVED so you can view the page immediately.
+            const userRole = localStorage.getItem('userRole');
+            const accountLink = document.getElementById('accountLink');
+            if(accountLink && userRole === 'admin') {
+                accountLink.textContent = 'Admin Panel';
+                accountLink.href = '/admin/dashboard';
             }
         });
     </script>

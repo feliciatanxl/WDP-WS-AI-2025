@@ -165,14 +165,14 @@
             <h2 id="detail-name"></h2>
             <p id="detail-price"></p>
             <p id="detail-stock" class="text-muted"></p>
-            <ul id="detail-description" class="detail-description"></ul>        <div class="quantity-wrapper">
+            <ul id="detail-description" class="detail-description"></ul>
+            <div class="quantity-wrapper">
                 <div class="quantity-selector">
                     <div class="quantity-btn" id="qty-minus">−</div>
                     <span class="quantity-number" id="qty-number">1</span>
                     <div class="quantity-btn" id="qty-plus">+</div>
                 </div>
             </div>
-
             <div class="action-row">
                 <button class="add-cart-btn mt-3">Add To Cart</button>
             </div>
@@ -213,21 +213,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- 1. Account Redirection Logic ---
             function updateAccountLink() {
                 const accountLink = document.getElementById("accountLink");
-                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-                const userRole = localStorage.getItem('userRole');
-
                 if (accountLink) {
-                    if (isLoggedIn) {
-                        if (userRole === 'admin') {
-                            accountLink.textContent = 'Admin Panel';
-                            accountLink.href = '/admin/dashboard';
-                        } else {
-                            accountLink.textContent = 'User';
-                            accountLink.href = '/account';
-                        }
+                    const userRole = localStorage.getItem('userRole');
+                    // Logic updated: Role check only, no login validation required
+                    if (userRole === 'admin') {
+                        accountLink.textContent = 'Admin Panel';
+                        accountLink.href = '/admin/dashboard';
+                    } else if (userRole === 'user') {
+                        accountLink.textContent = 'User Dashboard';
+                        accountLink.href = '/account';
                     } else {
                         accountLink.textContent = 'Account';
                         accountLink.href = '/account';
@@ -236,7 +232,6 @@
             }
             updateAccountLink();
 
-            // --- 2. Modal and Cart Logic ---
             const produceItems = document.querySelectorAll('.produce-item');
             const modal = document.getElementById('product-detail');
             const closeBtn = document.getElementById('close-detail');
@@ -266,7 +261,6 @@
                     const id = item.dataset.id;
                     currentProductId = parseInt(id);
                     const product = products[id];
-
                     nameEl.textContent = product.name;
                     priceEl.textContent = product.price;
                     descEl.innerHTML = "";
@@ -275,13 +269,11 @@
                         li.textContent = line;
                         descEl.appendChild(li);
                     });
-
                     currentQty = 1;
                     qtyEl.textContent = currentQty;
                     addToCartBtn.textContent = "Add To Cart";
                     addToCartBtn.classList.replace('btn-dark', 'btn-success');
                     addToCartBtn.disabled = false;
-
                     if (product.stock > 0) {
                         stockText.textContent = "Available stock: " + product.stock;
                         stockText.className = "text-muted";
@@ -296,7 +288,7 @@
             });
 
             closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-            
+
             document.getElementById("qty-minus").addEventListener("click", () => {
                 if (currentQty > 1) { currentQty--; qtyEl.textContent = currentQty; }
             });
@@ -313,7 +305,6 @@
                 const product = products[currentProductId];
                 let cart = JSON.parse(localStorage.getItem("farmCart")) || [];
                 let existingItemIndex = cart.findIndex(item => item.id === currentProductId);
-
                 if (existingItemIndex !== -1) {
                     let newTotalQty = cart[existingItemIndex].qty + currentQty;
                     if (newTotalQty > product.stock) {
@@ -324,20 +315,15 @@
                 } else {
                     cart.push({ id: currentProductId, name: product.name, price: product.price, qty: currentQty });
                 }
-
                 localStorage.setItem("farmCart", JSON.stringify(cart));
                 addToCartBtn.textContent = "Added!";
                 setTimeout(() => { window.location.href = "/orders"; }, 400);
             });
 
-            // Scroll Top
             const scrollTopBtn = document.getElementById("scrollTopBtn");
-            window.onscroll = () => {
-                scrollTopBtn.style.display = (window.scrollY > 200) ? "block" : "none";
-            };
+            window.onscroll = () => { scrollTopBtn.style.display = (window.scrollY > 200) ? "block" : "none"; };
             scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 
-            // Search
             document.getElementById("search").addEventListener("keyup", function () {
                 const text = this.value.toLowerCase();
                 produceItems.forEach(item => {
@@ -346,7 +332,6 @@
                 });
             });
 
-            // Category Filter
             document.querySelectorAll(".product-category-list a").forEach(link => {
                 link.addEventListener("click", e => {
                     e.preventDefault();
@@ -359,4 +344,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -150,28 +150,23 @@
     <script>
         function updateAccountLink() {
             const accountLink = document.getElementById("accountLink");
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            const userRole = localStorage.getItem('userRole');
-
             if (accountLink) {
-                if (isLoggedIn) {
-                    accountLink.classList.remove('active');
-                    if (userRole === 'admin') {
-                        accountLink.textContent = 'Admin Panel';
-                        accountLink.href = '/admin/dashboard'; 
-                    } else {
-                        accountLink.textContent = 'User';
-                        accountLink.href = '/account'; 
-                    }
+                // Validation removed to allow direct viewing of Dashboards
+                const userRole = localStorage.getItem('userRole');
+
+                if (userRole === 'admin') {
+                    accountLink.textContent = 'Admin Panel';
+                    accountLink.href = '/admin/dashboard'; 
+                } else if (userRole === 'user') {
+                    accountLink.textContent = 'User Dashboard';
+                    accountLink.href = '/account'; 
                 } else {
                     accountLink.textContent = 'Account';
                     accountLink.href = '/account';
-                    accountLink.classList.remove('active');
                 }
             }
         }
 
-        // Counter logic preserved from your design
         function startCounter(target) {
             const endValue = parseInt(target.getAttribute('data-count').replace(/[^0-9]/g, ''));
             const duration = 2000;

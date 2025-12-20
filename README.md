@@ -4,6 +4,7 @@ Flask Integration with WhatsApp Business API
 Step 1: python -m venv .venv <br>
 Step 2: .venv\Scripts\activate <br>
 Step 3: pip install -r requirements.txt <br>
+Step 4: python main.py (running on venv ip address)
 
 # To run Whatsapp Business API
 Step 1: Make sure you are in your env. <br>

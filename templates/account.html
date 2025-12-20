@@ -157,18 +157,16 @@
     <script>
         function updateAccountLink() {
             const accountLink = document.getElementById("accountLink");
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            const userRole = localStorage.getItem('userRole');
-
             if (accountLink) {
-                if (isLoggedIn) {
-                    if (userRole === 'admin') {
-                        accountLink.textContent = 'Admin Panel';
-                        accountLink.href = '/admin/dashboard'; 
-                    } else {
-                        accountLink.textContent = 'My Account';
-                        accountLink.href = '/account'; 
-                    }
+                // Validation removed to allow direct navigation based on Role
+                const userRole = localStorage.getItem('userRole');
+
+                if (userRole === 'admin') {
+                    accountLink.textContent = 'Admin Panel';
+                    accountLink.href = '/admin/dashboard'; 
+                } else if (userRole === 'user') {
+                    accountLink.textContent = 'User Dashboard';
+                    accountLink.href = '/account'; 
                 } else {
                     accountLink.textContent = 'Account';
                     accountLink.href = '/account';
