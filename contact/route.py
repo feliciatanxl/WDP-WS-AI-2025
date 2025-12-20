@@ -1,48 +1,81 @@
-from flask import Blueprint, render_template, request, jsonify
-from models import db, ContactInquiry 
+import os
+import requests 
+from dotenv import load_dotenv 
+from flask import Blueprint, render_template, redirect, url_for, flash, request
+from models import db, ContactInquiry
+from .forms import ContactForm
+
+# 1. Load environment variables from .env file
+load_dotenv()
 
 contact_bp = Blueprint('contact', __name__)
 
 @contact_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
-    # Initialize empty dictionaries to prevent "UndefinedError" in the HTML
-    errors = {}
-    form_data = {}
+    # 2. Instantiate the form
+    form = ContactForm()
 
-    if request.method == 'POST':
-        # Get data from the form
-        name = request.form.get('name')
-        email = request.form.get('email')
-        phone = request.form.get('phone')
-        message = request.form.get('message')
+    # 3. Check: Is it a POST request? AND Are all fields valid?
+    if form.validate_on_submit():
         
-        # Store current data to send back if there is an error (sticky form)
-        form_data = request.form
+        # --- START RECAPTCHA VERIFICATION ---
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        google_secret_key = os.getenv('GOOGLE_RECAPTCHA_SECRET')
 
-        # --- SERVER-SIDE VALIDATION ---
-        if not name or len(name.strip()) < 2:
-            errors['name'] = "Full name is required."
-        if not email or "@" not in email:
-            errors['email'] = "A valid email is required."
-        if not message or len(message.strip()) < 10:
-            errors['message'] = "Message must be at least 10 characters."
+        # Safety Check: Ensure key exists in .env
+        if not google_secret_key:
+            print("Error: GOOGLE_RECAPTCHA_SECRET is missing in .env file")
+            flash('System configuration error: Captcha key missing.', 'danger')
+            return render_template('contact.html', form=form)
 
-        # If there are validation errors, re-render the form
-        if errors:
-            # Looks in /templates/contact.html
-            return render_template('contact.html', errors=errors, form_data=form_data)
+        # Verify with Google
+        verify_url = "https://www.google.com/recaptcha/api/siteverify"
+        payload = {
+            'secret': google_secret_key,
+            'response': recaptcha_response
+        }
 
-        # --- DATABASE LOGIC (The 'C' in CRUD) ---
         try:
-            new_inquiry = ContactInquiry(name=name, email=email, phone=phone, message=message)
+            # Ask Google: "Is this user real?"
+            response = requests.post(verify_url, data=payload)
+            result = response.json()
+
+            # !!! SECURITY GATE !!!
+            # If Google says "False", we STOP here. We do NOT save to DB.
+            if not result.get('success'):
+                flash('Recaptcha verification failed. Please check the box.', 'danger')
+                return render_template('contact.html', form=form)
+
+        except Exception as e:
+            print(f"Recaptcha Connection Error: {e}")
+            flash('Could not verify captcha. Please try again.', 'danger')
+            return render_template('contact.html', form=form)
+        # --- END RECAPTCHA VERIFICATION ---
+
+
+        # 4. Only if Captcha passed, Retrieve clean data
+        new_inquiry = ContactInquiry(
+            name=form.name.data,
+            email=form.email.data,
+            phone=form.phone.data,
+            message=form.message.data
+        )
+
+        try:
+            # 5. Save to Database
             db.session.add(new_inquiry)
             db.session.commit()
             
-            return "Success", 200
+            # 6. Success: Show a message
+            flash('Message sent successfully! We will contact you within 24 hours.', 'success')
+            
+            # Redirect prevents "Resubmission" warnings
+            return redirect(url_for('contact.contact'))
             
         except Exception as e:
             db.session.rollback()
-            return f"Database Error: {str(e)}", 500
+            print(f"Database Error: {e}") 
+            flash('An error occurred while sending your message. Please try again.', 'danger')
 
-    # GET request: loads the page
-    return render_template('contact.html', errors=errors, form_data=form_data)
+    # 7. Render the page
+    return render_template('contact.html', form=form)

@@ -27,21 +27,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/about">About Us</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/product">Our Produce</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/article">Articles</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{{ url_for('contact.contact') }}">Contact Us</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/account" id="accountLink">Account</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/product">Our Produce</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/article">Articles</a></li>
+                    <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{ url_for('contact.contact') }}">Contact Us</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/account" id="accountLink">Account</a></li>
                 </ul>
             </div>
         </div>
@@ -53,42 +43,76 @@
                 <h1 class="text-center mb-4 display-4 fw-bold">Connect with Leaf Plant</h1>
                 <p class="text-center mb-5 text-muted">We're here to answer your questions about wholesale, partnerships, or farm tours. <strong>We aim to respond within 24 hours.</strong></p>
 
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" id="flash-message-{{ category }}">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+
                 <div class="row g-4 justify-content-center align-items-stretch">
                     <div class="col-lg-6 d-flex">
+                        
                         <form id="contactForm" method="POST" action="{{ url_for('contact.contact') }}" class="p-4 border rounded shadow-sm bg-white w-100 d-flex flex-column h-100" novalidate>
+                            {{ form.hidden_tag() }}
+
                             <div class="mb-3">
                                 <label class="form-label">Name</label>
-                                <input type="text" name="name" class="form-control" value="{{ form_data.get('name', '') }}" required>
-                                <div class="invalid-feedback {% if errors.name %}d-block{% endif %}" id="nameError">
-                                    {{ errors.get('name', '') }}
-                                </div>
+                                {% if form.name.errors %}
+                                    {{ form.name(class="form-control is-invalid", placeholder="Your Name") }}
+                                    <div class="invalid-feedback d-block">{% for error in form.name.errors %} {{ error }} {% endfor %}</div>
+                                {% else %}
+                                    {{ form.name(class="form-control", placeholder="Your Name") }}
+                                {% endif %}
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Email</label>
-                                <input type="email" name="email" class="form-control" value="{{ form_data.get('email', '') }}" required>
-                                <div class="invalid-feedback {% if errors.email %}d-block{% endif %}" id="emailError">
-                                    {{ errors.get('email', '') }}
-                                </div>
+                                {% if form.email.errors %}
+                                    {{ form.email(class="form-control is-invalid", placeholder="name@example.com") }}
+                                    <div class="invalid-feedback d-block">{% for error in form.email.errors %} {{ error }} {% endfor %}</div>
+                                {% else %}
+                                    {{ form.email(class="form-control", placeholder="name@example.com") }}
+                                {% endif %}
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Phone Number (Optional)</label>
-                                <input type="tel" name="phone" class="form-control" value="{{ form_data.get('phone', '') }}">
-                                <div class="invalid-feedback d-block" id="phoneError"></div>
+                                {% if form.phone.errors %}
+                                    {{ form.phone(class="form-control is-invalid", placeholder="+65 1234 5678") }}
+                                    <div class="invalid-feedback d-block">{% for error in form.phone.errors %} {{ error }} {% endfor %}</div>
+                                {% else %}
+                                    {{ form.phone(class="form-control", placeholder="+65 1234 5678") }}
+                                {% endif %}
                             </div>
+
                             <div class="mb-3 flex-grow-1 d-flex flex-column">
                                 <label class="form-label">Message</label>
-                                <textarea name="message" class="form-control flex-grow-1" rows="4" style="min-height: 150px;" required>{{ form_data.get('message', '') }}</textarea>
-                                <div class="invalid-feedback {% if errors.message %}d-block{% endif %}" id="messageError">
-                                    {{ errors.get('message', '') }}
-                                </div>
+                                {% if form.message.errors %}
+                                    {{ form.message(class="form-control flex-grow-1 is-invalid", rows="4", style="min-height: 150px;") }}
+                                    <div class="invalid-feedback d-block">{% for error in form.message.errors %} {{ error }} {% endfor %}</div>
+                                {% else %}
+                                    {{ form.message(class="form-control flex-grow-1", rows="4", style="min-height: 150px;") }}
+                                {% endif %}
                             </div>
 
                             <div class="mb-3 recaptcha-wrapper">
                                 <div class="g-recaptcha" data-sitekey="6LeHaScsAAAAAASqsawgrRXJ3lkFe-CsYeIqRY_F"></div>
-                                <div class="invalid-feedback" id="recaptchaError"></div>
+                                
+                                <div id="recaptchaError" class="text-danger small mt-1" style="display:none;">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i> Please complete the captcha verification.
+                                </div>
                             </div>
 
-                            <button type="submit" class="btn btn-custom w-100">Send</button>
+                            {{ form.submit(class="btn btn-custom w-100") }}
                         </form>
                     </div>
 
@@ -135,7 +159,7 @@
                 <div class="modal-body text-center p-5">
                     <i class="bi bi-check-circle-fill text-success mb-3" style="font-size: 4rem;"></i>
                     <h2 class="fw-bold">Message Sent!</h2>
-                    <p class="text-muted">Thank you, <strong id="modalUserName"></strong>. We have received your inquiry and will aim to respond within 24 hours.</p>
+                    <p class="text-muted">Thank you. We have received your inquiry and will aim to respond within 24 hours.</p>
                     <button type="button" class="btn btn-success px-5 py-2 fw-bold" data-bs-dismiss="modal">Great!</button>
                 </div>
             </div>
@@ -176,7 +200,6 @@
         function updateAccountLink() {
             const accountLink = document.getElementById("accountLink");
             if (accountLink) {
-                // isLoggedIn check removed for direct testing/viewing
                 const userRole = localStorage.getItem('userRole');
 
                 if (userRole === 'admin') {
@@ -192,102 +215,28 @@
             }
         }
 
-        function displayError(inputElement, message) {
-            const errorDiv = document.getElementById(inputElement.name + 'Error');
-            if (errorDiv) {
-                errorDiv.textContent = message;
-                inputElement.classList.add('is-invalid');
-                errorDiv.classList.add('d-block');
-            }
-        }
-
-        function validateContactForm() {
-            let isValid = true;
-            const form = document.getElementById("contactForm");
-
-            form.querySelectorAll('.form-control').forEach(input => {
-                input.classList.remove('is-invalid');
-                const errorDiv = document.getElementById(input.name + 'Error');
-                if (errorDiv) {
-                    errorDiv.textContent = "";
-                    errorDiv.classList.remove('d-block');
-                }
-            });
-            const recaptchaErr = document.getElementById('recaptchaError');
-            recaptchaErr.textContent = "";
-            recaptchaErr.classList.remove('d-block');
-
-            const nameInput = form.querySelector('input[name="name"]');
-            if (nameInput.value.trim() === "") {
-                displayError(nameInput, "Please enter your full name. [Required]");
-                isValid = false;
-            }
-
-            const emailInput = form.querySelector('input[name="email"]');
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (emailInput.value.trim() === "") {
-                displayError(emailInput, "A valid email address is required. [Required]");
-                isValid = false;
-            } else if (!emailRegex.test(emailInput.value)) {
-                displayError(emailInput, "Please enter a valid email address format.");
-                isValid = false;
-            }
-
-            const phoneInput = form.querySelector('input[name="phone"]');
-            const phoneValue = phoneInput.value.trim();
-            const phoneRegex = /^\+?[0-9\s-]{7,20}$/;
-            if (phoneValue !== "" && !phoneRegex.test(phoneValue)) {
-                displayError(phoneInput, "Please enter a valid phone number.");
-                isValid = false;
-            }
-
-            const messageInput = form.querySelector('textarea[name="message"]');
-            if (messageInput.value.trim() === "") {
-                displayError(messageInput, "Please provide details of your inquiry. [Required]");
-                isValid = false;
-            } else if (messageInput.value.trim().length < 10) { 
-                displayError(messageInput, "Message must be at least 10 characters long.");
-                isValid = false;
-            }
-
-            if (isValid && typeof grecaptcha !== 'undefined' && grecaptcha.getResponse() === "") {
-                recaptchaErr.textContent = "Please complete the 'I'm not a robot' check before submitting.";
-                recaptchaErr.classList.add('d-block');
-                isValid = false;
-            }
-
-            return isValid;
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
             updateAccountLink();
-            const contactForm = document.getElementById("contactForm");
-
-            if (contactForm) {
-                contactForm.addEventListener("submit", function (event) {
-                    event.preventDefault(); 
-                    if (validateContactForm()) {
-                        const formData = new FormData(contactForm);
-                        fetch("{{ url_for('contact.contact') }}", {
-                            method: "POST",
-                            body: formData
-                        })
-                        .then(response => {
-                            if (response.ok) {
-                                document.getElementById('modalUserName').textContent = formData.get('name');
-                                const successModal = new bootstrap.Modal(document.getElementById('thankYouModal'));
-                                successModal.show();
-                                contactForm.reset();
-                                grecaptcha.reset();
-                            } else {
-                                alert("Something went wrong. Please try again.");
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                        });
+            
+            // --- 1. RECAPTCHA CLIENT-SIDE CHECK (Prevents submission if empty) ---
+            const form = document.getElementById('contactForm');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    if (grecaptcha.getResponse() === "") {
+                        event.preventDefault(); // Stop the form
+                        document.getElementById('recaptchaError').style.display = 'block'; // Show red text
+                    } else {
+                        document.getElementById('recaptchaError').style.display = 'none'; // Hide red text
                     }
                 });
+            }
+            // ---------------------------------------------------------------------
+
+            const successAlert = document.getElementById('flash-message-success');
+            if (successAlert) {
+                successAlert.style.display = 'none';
+                const myModal = new bootstrap.Modal(document.getElementById('thankYouModal'));
+                myModal.show();
             }
 
             const scrollTopBtn = document.getElementById("scrollTopBtn");
