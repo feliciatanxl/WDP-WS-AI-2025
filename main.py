@@ -48,22 +48,19 @@ def create_app():
     def account():
         return render_template('account.html')
 
-    # NEW: Route for the Shopping Bag
     @app.route('/orders')
     def orders():
         return render_template('orders.html')
 
-    # NEW: Route for Secure Payment
     @app.route('/payment')
     def payment():
         return render_template('payment.html')
 
-    # NEW: Route for Order Success & Review
     @app.route('/review')
     def review():
         return render_template('review.html')
 
-    # NEW: Admin Dashboard (FETCING DATA FROM DB)
+    # Admin Dashboard (FETCING DATA FROM DB)
     @app.route('/admin/dashboard')
     def admin_dashboard():
         # Query all inquiries from the database to display in the admin table
