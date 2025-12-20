@@ -54,9 +54,6 @@ def create_app():
     @app.route('/review')
     def review(): return render_template('review.html')
 
-    # NOTE: The /admin/dashboard route is REMOVED from here.
-    # It is now handled inside admin/routes.py
-
     # Create Tables
     with app.app_context():
         db.create_all()
