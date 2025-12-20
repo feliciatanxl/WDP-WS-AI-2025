@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from models import db, ContactInquiry 
 
-# FIX: Remove template_folder='.' so it looks in the global templates folder
 contact_bp = Blueprint('contact', __name__)
 
 @contact_bp.route('/contact', methods=['GET', 'POST'])

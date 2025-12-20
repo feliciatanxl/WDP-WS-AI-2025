@@ -119,3 +119,6 @@
     background: conic-gradient(#198754 0% 64%, #e9ecef 64% 100%);
 }
 
+.table-warning {
+            transition: background-color 2s ease-out;
+        }
