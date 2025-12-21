@@ -9,7 +9,7 @@ admin_bp = Blueprint('admin', __name__)
 def get_sql_server_connection():
     return pyodbc.connect(
         "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=CHAR;"
+        "SERVER=localhost;"
         "DATABASE=ProductApp;"
         "Trusted_Connection=yes;"
     )
