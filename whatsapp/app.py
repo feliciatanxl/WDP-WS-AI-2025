@@ -1,15 +1,25 @@
-import pandas as pd
-import requests 
-import os 
-from flask import Flask, request, jsonify
-from openai import OpenAI 
-import time 
-import datetime
-import re
-from dotenv import load_dotenv
+# ==============================================================================
+# 0. PATH FIX (Adds root directory so it can find models.py)
+# ==============================================================================
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # ==============================================================================
-# 1. Configuration & Security
+# 1. Standard Imports
+# ==============================================================================
+import requests
+import re
+import datetime
+from flask import Flask, request, jsonify
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Import all models
+from models import db, ContactInquiry, Product, Customer, WhatsAppOrder, WhatsAppLead
+
+# ==============================================================================
+# 2. Configuration & Security
 # ==============================================================================
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env')) 
 
@@ -19,6 +29,13 @@ YOUR_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") 
 
 app = Flask(__name__)
+
+# --- DATABASE CONFIGURATION ---
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '..', 'leafplant.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
 processed_messages = set()
 conversation_history = {} 
 
@@ -28,164 +45,159 @@ except Exception:
     client = None
 
 # ==============================================================================
-# 2. Data Logic
+# 3. Database Helper Logic (CRUD & STOCK GUARD)
 # ==============================================================================
-def load_excel_data():
-    try:
-        inventory = pd.read_excel('Inventory and Stock Status.xlsx') 
-        customers = pd.read_excel('Customer and Group Leader Mapping.xlsx') 
-        leaders = pd.read_excel('Group Leader Summary.xlsx') 
-        customers['WA Phone Number'] = customers['WA Phone Number'].astype(str)
-        return inventory, customers, leaders
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        return None, None, None
+def get_inventory_string():
+    """Retrieves stock and explicitly marks items as SOLD OUT for the AI."""
+    products = Product.query.all()
+    if not products:
+        return "No stock data available."
+    
+    output = "CURRENT FARM INVENTORY:\n"
+    for p in products:
+        status = "AVAILABLE" if p.available_qty > 0 else "SOLD OUT"
+        output += f"- {p.name}: ${p.price} | {p.available_qty} left ({status})\n"
+    return output
 
-def deduct_stock(product_name, qty_to_deduct):
-    inv, cust, lead = load_excel_data()
-    idx = inv[inv['Product Name'].str.contains(product_name, case=False)].index
-    if not idx.empty:
-        current_qty = inv.at[idx[0], 'Available Quantity']
-        inv.at[idx[0], 'Available Quantity'] = current_qty - int(qty_to_deduct)
-        inv.to_excel('Inventory and Stock Status.xlsx', index=False)
-        print(f"[STOCK UPDATE] {product_name} reduced by {qty_to_deduct}")
+def deduct_stock_db(product_name, qty_to_deduct):
+    product = Product.query.filter(Product.name.ilike(f"%{product_name}%")).first()
+    if product and product.available_qty >= int(qty_to_deduct):
+        product.available_qty -= int(qty_to_deduct)
+        db.session.commit()
+        return True
+    return False
 
 # ==============================================================================
-# 3. New Prospect Handling (WITH MEMORY)
+# 4. New Prospect Handling (Privacy Focused Lead Capture)
 # ==============================================================================
 def handle_new_prospect(customer_number, customer_message, history):
     system_prompt = """
-    You are Leaf Plant AI. A NEW user is messaging the farm.
-    
-    1. GREETING: If they haven't provided a location yet, reply warmly and ask which neighborhood or area they are in.
-    2. PRIVACY: Explain that this neighborhood check helps protect their identity and ensures fresh delivery.
-    3. EXTRACTION: ONLY if the user mentions a specific area/neighborhood, add the hidden tag: [[ADDRESS: Exact Neighborhood/Area]].
+    You are Leaf Plant AI. A NEW user is messaging. 
+    1. GREETING: Warmly ask for their neighborhood. 
+    2. PRIVACY: Explain that we deliver through local Group Leaders to keep costs low.
+    3. EXTRACTION: Tag the neighborhood: [[ADDRESS: Neighborhood]]. Tag name: [[NAME: User Name]].
     """
-    
-    # Build messages with context history
     messages = [{"role": "system", "content": system_prompt}]
-    for h in history:
-        messages.append(h)
-    messages.append({"role": "user", "content": customer_message})
-
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages
-        )
-        ai_reply = completion.choices[0].message.content
-        
-        address_match = re.search(r"\[\[ADDRESS: (.*?)\]\]", ai_reply)
-        
-        if address_match:
-            extracted_address = address_match.group(1)
-            print(f"\n--- [DATA COLLECTED] ---")
-            print(f"Phone: {customer_number}")
-            print(f"AI Extracted Area: {extracted_address}")
-            print(f"------------------------\n")
-
-            leads_file = 'New_Leads_Waiting_List.xlsx'
-            new_lead = pd.DataFrame([{
-                'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 
-                'Phone': customer_number, 
-                'Extracted Address': extracted_address, 
-                'Status': 'Awaiting Leader Assignment'
-            }])
-
-            if not os.path.exists(leads_file): 
-                new_lead.to_excel(leads_file, index=False)
-            else: 
-                pd.concat([pd.read_excel(leads_file), new_lead], ignore_index=True).to_excel(leads_file, index=False)
-        else:
-            print(f"[CHAT] New user {customer_number} is in greeting phase.")
-
-        return re.sub(r"\[\[ADDRESS: .*?\]\]", "", ai_reply).strip()
-
-    except Exception as e:
-        if "Permission denied" in str(e):
-            print(f"\n[!!!] PLEASE CLOSE 'New_Leads_Waiting_List.xlsx'!")
-        return "Welcome to the farm! Could you let us know which neighborhood you are in?"
-
-# ==============================================================================
-# 4. AI Sales Engine
-# ==============================================================================
-def get_openai_response(customer_message, customer_id, leader_name, inventory_df):
-    if not client: return "AI Offline."
-    if customer_id not in conversation_history: conversation_history[customer_id] = []
-    
-    history = conversation_history[customer_id][-4:]
-    stock_list = inventory_df[['Product Name', 'Stock Status', 'Price', 'Member Discount (%)', 'Available Quantity']].to_string(index=False)
-    
-    messages = [{"role": "system", "content": f"You are 'Leaf Plant AI'. Customer: {customer_id}. Leader: {leader_name}. Stock: {stock_list}. Tag order: [[DATA: Item | Qty | Cost]]."}]
-    for h in history: messages.append(h)
+    messages.extend(history)
     messages.append({"role": "user", "content": customer_message})
 
     try:
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        conversation_history[customer_id].append({"role": "user", "content": customer_message})
-        conversation_history[customer_id].append({"role": "assistant", "content": ai_reply})
+        address_match = re.search(r"\[\[ADDRESS: (.*?)\]\]", ai_reply)
+        name_match = re.search(r"\[\[NAME: (.*?)\]\]", ai_reply)
+        
+        if address_match:
+            extracted_area = address_match.group(1)
+            extracted_name = name_match.group(1) if name_match else "New Prospect"
+            
+            if not WhatsAppLead.query.filter_by(phone=customer_number).first():
+                new_lead = WhatsAppLead(
+                    phone=customer_number,
+                    extracted_name=extracted_name,
+                    neighborhood=extracted_area,
+                    status='Awaiting Assignment'
+                )
+                db.session.add(new_lead)
+                db.session.commit()
 
+        # Clean tags
+        clean_reply = re.sub(r"\[\[ADDRESS: .*?\]\]", "", ai_reply)
+        clean_reply = re.sub(r"\[\[NAME: .*?\]\]", "", clean_reply)
+        return clean_reply.strip()
+    except Exception:
+        return "Welcome! Which neighborhood are you in so I can find your Group Leader?"
+
+# ==============================================================================
+# 5. AI Sales Engine (STOCK SECURE & RECEIPT GENERATION)
+# ==============================================================================
+def get_openai_response(customer_message, customer_number, customer_obj):
+    if not client: return "AI Offline."
+    
+    if customer_number not in conversation_history: conversation_history[customer_number] = []
+    history = conversation_history[customer_number][-4:]
+    
+    stock_list = get_inventory_string()
+    leader = customer_obj.leader
+    leader_name = leader.name if leader else "the farm"
+    
+    system_prompt = f"""
+    You are 'Leaf Plant AI'. Customer: {customer_obj.name}. Leader: {leader_name}.
+    - GREETING: Use their name.
+    - STOCK GUARD: If an item is 'SOLD OUT', do NOT allow an order. 
+    - DISCOUNT: Apply 10% Member Discount.
+    - INVENTORY:
+    {stock_list}
+    
+    If order confirmed, tag: [[DATA: Item | Qty | TotalPrice]].
+    TotalPrice = (List Price * Qty) * 0.90
+    """
+
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": customer_message})
+
+    try:
+        completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        ai_reply = completion.choices[0].message.content
+        
         if "[[DATA:" in ai_reply:
             match = re.search(r"\[\[DATA: (.*?)\]\]", ai_reply)
             if match:
                 parts = [p.strip() for p in match.group(1).split('|')]
                 if len(parts) == 3:
                     item, qty, cost = parts[0], parts[1], parts[2]
-                    log_file = 'Farm_Orders_Fulfillment.xlsx'
-                    order = pd.DataFrame([{'Timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), 'Censored Buyer ID': customer_id, 'Group Leader': leader_name, 'Item': item, 'Quantity': qty, 'Total Cost': cost, 'ERP Sync Status': 'Ready for Narration Export'}])
-                    if not os.path.exists(log_file): order.to_excel(log_file, index=False)
-                    else: pd.concat([pd.read_excel(log_file), order]).to_excel(log_file, index=False)
-                    deduct_stock(item, qty)
-                    print(f"\n[!!! ERP SUCCESS !!!] Order logged for {customer_id}")
+                    
+                    # FINAL STOCK VALIDATION
+                    if deduct_stock_db(item, qty):
+                        commission = float(cost) * 0.111 
+                        new_order = WhatsAppOrder(
+                            customer_id=customer_obj.id,
+                            leader_id=customer_obj.leader_id,
+                            customer_phone=customer_number,
+                            product_name=item,
+                            quantity=int(qty),
+                            total_price=float(cost),
+                            commission_earned=commission,
+                            order_status='Confirmed'
+                        )
+                        db.session.add(new_order)
+                        db.session.commit()
+                        
+                        # Add a Digital Receipt to the reply
+                        ai_reply += f"\n\n✅ *ORDER SECURED*\nItem: {item}\nQty: {qty}\nTotal: ${cost}\nLeader {leader_name} will notify you on delivery day!"
+                    else:
+                        ai_reply = f"I'm so sorry, {customer_obj.name}! {item} just sold out while we were talking. Would you like something else?"
 
         return re.sub(r"\[\[DATA: .*?\]\]", "", ai_reply).strip()
-    except Exception as e:
-        return "I'm having a connection issue. A real salesperson will help soon!"
+    except Exception:
+        db.session.rollback()
+        return "Syncing with farm... please try again."
 
 # ==============================================================================
-# 5. Webhook Handling
+# 6. Webhook Handling
 # ==============================================================================
-@app.route('/webhook', methods=['GET'])
-def verify():
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    if mode == 'subscribe' and token == YOUR_VERIFY_TOKEN:
-        return challenge, 200
-    return 'Verification failed', 403
-
 @app.route('/webhook', methods=['POST'])
 def handle_message():
     data = request.get_json()
-    inventory_df, customer_df, leader_df = load_excel_data()
-    
     try:
         msg = data['entry'][0]['changes'][0]['value']['messages'][0]
         customer_number, msg_id, customer_message = msg['from'], msg['id'], msg['text']['body']
-        print(f"\n[INCOMING] {customer_number}: {customer_message}")
     except: return jsonify({"status": "error"}), 200
 
     if msg_id in processed_messages: return jsonify({"status": "duplicate"}), 200
     processed_messages.add(msg_id) 
 
-    # Handle conversation history for both types of users
-    if customer_number not in conversation_history:
-        conversation_history[customer_number] = []
+    customer = Customer.query.filter_by(phone=customer_number).first()
     
-    current_history = conversation_history[customer_number][-4:]
-    cust_row = customer_df[customer_df['WA Phone Number'] == customer_number]
-    
-    if not cust_row.empty:
-        cust_id = cust_row['Customer ID'].iloc[0]
-        l_name = leader_df[leader_df['Group Leader ID'] == cust_row['Group Leader ID'].iloc[0]]['Leader Name'].iloc[0]
-        reply = get_openai_response(customer_message, cust_id, l_name, inventory_df)
+    if customer:
+        reply = get_openai_response(customer_message, customer_number, customer)
     else:
-        # Pass history to prospect handler
-        reply = handle_new_prospect(customer_number, customer_message, current_history)
+        history = conversation_history.get(customer_number, [])[-4:]
+        reply = handle_new_prospect(customer_number, customer_message, history)
 
-    # Save to memory for the next message
+    if customer_number not in conversation_history: conversation_history[customer_number] = []
     conversation_history[customer_number].append({"role": "user", "content": customer_message})
     conversation_history[customer_number].append({"role": "assistant", "content": reply})
 
@@ -196,4 +208,6 @@ def handle_message():
     return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all() 
     app.run(port=5000, debug=True)
