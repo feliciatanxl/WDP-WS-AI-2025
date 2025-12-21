@@ -1,9 +1,16 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import pytz
 
 db = SQLAlchemy()
 
-# 1. Website Contact Form (Logical separation)
+# Helper function to ensure everything is recorded in Singapore Time
+def get_sg_time():
+    return datetime.now(pytz.timezone('Asia/Singapore'))
+
+# ==============================================================================
+# 1. WEBSITE DATA: Customer Service (Web Form)
+# ==============================================================================
 class ContactInquiry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -11,9 +18,12 @@ class ContactInquiry(db.Model):
     phone = db.Column(db.String(20))
     message = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='Pending') 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # UPDATED: Now uses SG Time for website audit
+    created_at = db.Column(db.DateTime, default=get_sg_time)
 
-# 2. WhatsApp Orders (Linked to Customer and Leader)
+# ==============================================================================
+# 2. WHATSAPP DATA: Sales & Lead Intake
+# ==============================================================================
 class WhatsAppOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # --- LINKS ---
@@ -25,11 +35,21 @@ class WhatsAppOrder(db.Model):
     product_name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     total_price = db.Column(db.Float, nullable=False)
-    commission_earned = db.Column(db.Float, default=0.0) # NEW: For leader payout
+    commission_earned = db.Column(db.Float, default=0.0) # For leader payout
     order_status = db.Column(db.String(50), default='New Order')
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_sg_time)
 
-# 3. Business Core Data
+class WhatsAppLead(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(20), unique=True, nullable=False)
+    extracted_name = db.Column(db.String(100)) 
+    neighborhood = db.Column(db.String(100))    
+    status = db.Column(db.String(50), default='Awaiting Assignment')
+    created_at = db.Column(db.DateTime, default=get_sg_time)
+
+# ==============================================================================
+# 3. CORE BUSINESS DATA: Inventory & Logistics
+# ==============================================================================
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -54,11 +74,3 @@ class GroupLeader(db.Model):
     members = db.relationship('Customer', backref='leader', lazy=True)
     # Link back to orders for commission tracking
     leader_orders = db.relationship('WhatsAppOrder', backref='handling_leader', lazy=True)
-    
-class WhatsAppLead(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    phone = db.Column(db.String(20), unique=True, nullable=False)
-    extracted_name = db.Column(db.String(100)) # AI tries to catch their name
-    neighborhood = db.Column(db.String(100))    # Extracted via handle_new_prospect
-    status = db.Column(db.String(50), default='Awaiting Assignment') # e.g., 'Assigned', 'Blacklisted'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
