@@ -99,4 +99,23 @@ def delete_inquiry(id):
     except Exception as e:
         db.session.rollback()
         print(f"Error: {e}")
-    return redirect(url_for('admin.dashboard') + '#customer-service')
+        
+    # Updated Redirect: Uses &tab= so it doesn't jump weirdly
+    return redirect(url_for('admin.dashboard') + '?refresh=true&tab=customer-service')
+
+# --- NEW ROUTE: HANDLE STATUS UPDATES ---
+@admin_bp.route('/admin/update_status/<int:id>', methods=['POST'])
+def update_status(id):
+    inquiry = ContactInquiry.query.get_or_404(id)
+    new_status = request.form.get('status')
+    
+    if new_status:
+        inquiry.status = new_status
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating status: {e}")
+            
+    # Redirect back to the dashboard, specifically the customer service tab
+    return redirect(url_for('admin.dashboard') + '?refresh=true&tab=customer-service')

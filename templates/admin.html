@@ -99,7 +99,7 @@
                                 <p class="lead text-muted">Real-time Inquiries (From Contact Form)</p>
                             </div>
                             
-                           <button class="btn btn-outline-primary" onclick="window.location.href='/admin/dashboard?refresh=true&t=' + Date.now() + '&tab=customer-service'">
+                            <button class="btn btn-outline-primary" onclick="window.location.href='/admin/dashboard?refresh=true&t=' + Date.now() + '&tab=customer-service'">
                                 <i class="bi bi-arrow-clockwise me-2"></i> Refresh List
                             </button>
                         </div>
@@ -126,20 +126,93 @@
                                         </td>
                                         <td>{{ inquiry.message[:60] }}...</td>
                                         <td>{{ inquiry.created_at.strftime('%b %d, %Y') }}</td>
+                                        
                                         <td>
-                                            <select class="form-select form-select-sm">
-                                                <option selected>New</option>
-                                                <option value="1">In Progress</option>
-                                                <option value="2">Resolved</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <form action="{{ url_for('admin.delete_inquiry', id=inquiry.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this message?');" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger p-1" title="Delete">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
+                                            <form action="{{ url_for('admin.update_status', id=inquiry.id) }}" method="POST" class="m-0">
+                                                <select name="status" onchange="this.form.submit()" 
+                                                        class="form-select form-select-sm {% if inquiry.status == 'Resolved' %}text-success fw-bold{% endif %}">
+                                                    <option value="New" class="text-dark fw-normal" {% if inquiry.status == 'New' %}selected{% endif %}>New</option>
+                                                    <option value="In Progress" class="text-dark fw-normal" {% if inquiry.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                                    <option value="Resolved" class="text-success fw-bold" {% if inquiry.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                                </select>
                                             </form>
                                         </td>
+                                        
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-primary p-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ inquiry.id }}" title="View Full Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+
+                                                <button type="button" class="btn btn-sm btn-outline-danger p-1" data-bs-toggle="modal" data-bs-target="#deleteModal{{ inquiry.id }}" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+
+                                            <div class="modal fade" id="viewModal{{ inquiry.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title text-primary-green fw-bold">Inquiry #{{ inquiry.id }} Details</h5>
+                                                            <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                                                        </div>
+                                                        <div class="modal-body text-start">
+                                                            <div class="row mb-3">
+                                                                <div class="col-md-6">
+                                                                    <label class="fw-bold text-muted small text-uppercase">Sender Name</label>
+                                                                    <p class="fs-5">{{ inquiry.name }}</p>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="fw-bold text-muted small text-uppercase">Date Received</label>
+                                                                    <p>{{ inquiry.created_at.strftime('%d %B %Y at %I:%M %p') }}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="row mb-4">
+                                                                <div class="col-md-6">
+                                                                    <label class="fw-bold text-muted small text-uppercase">Email Address</label>
+                                                                    <p><a href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a></p>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="fw-bold text-muted small text-uppercase">Phone Number</label>
+                                                                    <p>{% if inquiry.phone %}{{ inquiry.phone }}{% else %}<span class="text-muted fst-italic">Not Provided</span>{% endif %}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="fw-bold text-muted small text-uppercase">Full Message</label>
+                                                                <div class="p-3 bg-light rounded border">{{ inquiry.message }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                            <a href="mailto:{{ inquiry.email }}" class="btn btn-primary">Reply via Email</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="modal fade" id="deleteModal{{ inquiry.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title text-danger fw-bold">Confirm Deletion</h5>
+                                                            <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
+                                                        </div>
+                                                        <div class="modal-body text-start">
+                                                            Are you sure you want to permanently delete the inquiry from <strong>{{ inquiry.name }}</strong>?
+                                                            <br><br>
+                                                            <span class="text-muted small">This action cannot be undone.</span>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            
+                                                            <form action="{{ url_for('admin.delete_inquiry', id=inquiry.id) }}" method="POST" class="m-0">
+                                                                <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            </td>
                                     </tr>
                                     {% endfor %}
                                     
@@ -296,71 +369,42 @@
             window.location.href = '/'; 
         }
 
-        // 3. Tab Switching Logic (Clicking Sidebar)
-        // Uses pushState to update URL without jumping
+        // 3. Tab Switching Logic
         window.showAdminSection = function (event, sectionId) {
             event.preventDefault();
-            
-            // Switch Active Classes
             document.querySelectorAll('.user-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.sidebar-menu .nav-link').forEach(l => l.classList.remove('active'));
-            
             const target = document.getElementById(sectionId);
             if(target) target.classList.add('active');
-            
-            if (event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
-
-            // Update URL silently (No Jump)
+            if (event.currentTarget) event.currentTarget.classList.add('active');
             history.pushState(null, null, '#' + sectionId);
-            window.scrollTo(0, 0); // Keep top
-
+            window.scrollTo(0, 0); 
             return false;
         }
 
-        // 4. Page Load Logic (Handling Refresh & Tabs)
+        // 4. Page Load Logic (Refresh & Tabs)
         window.addEventListener('DOMContentLoaded', function () {
             updateAccountLinkState();
-
-            // Check if we have a Hash (#) OR a Query Param (&tab=)
             let activeId = window.location.hash.substring(1);
-            
-            // If no hash, look for the 'tab' parameter from our new Refresh button
             if (!activeId) {
                 const params = new URLSearchParams(window.location.search);
                 activeId = params.get('tab');
             }
-
-            // If we found a target ID (e.g. 'customer-service')
             if (activeId) {
-                // Clean the ID just in case
                 activeId = activeId.split('&')[0].split('?')[0];
-                
                 const targetSection = document.getElementById(activeId);
-
                 if (targetSection) {
-                    // 1. Deactivate Dashboard (and all others)
                     document.querySelectorAll('.user-section').forEach(s => s.classList.remove('active'));
                     document.querySelectorAll('.sidebar-menu .nav-link').forEach(l => l.classList.remove('active'));
-
-                    // 2. Activate the Target Section
                     targetSection.classList.add('active');
-
-                    // 3. Find and Activate the correct Sidebar Link safely
                     const links = document.querySelectorAll('.sidebar-menu .nav-link');
                     links.forEach(link => {
-                        // Check if this link's onclick function points to our activeId
                         let onclickText = link.getAttribute('onclick');
                         if (onclickText && onclickText.includes("'" + activeId + "'")) {
                             link.classList.add('active');
                         }
                     });
-
-                    // 4. Ensure we stay at the top (overrides browser scroll)
-                    setTimeout(function() { 
-                        window.scrollTo(0, 0); 
-                    }, 1);
+                    setTimeout(function() { window.scrollTo(0, 0); }, 1);
                 }
             }
         });
