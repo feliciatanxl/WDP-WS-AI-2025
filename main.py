@@ -1,6 +1,10 @@
 import os
-from flask import Flask, send_from_directory, render_template
-from models import db
+import io
+import csv
+import pytz
+from datetime import datetime
+from flask import Flask, send_from_directory, render_template, Response
+from models import db, WhatsAppOrder, GroupLeader # Added models for the query
 from contact.route import contact_bp 
 from admin.routes import admin_bp 
 
@@ -16,11 +20,47 @@ def create_app():
     # Initialize Database
     db.init_app(app)
 
-    # 2. Register Blueprints
+    # Register Blueprints
     app.register_blueprint(contact_bp)
     app.register_blueprint(admin_bp)
 
-    # Favicon Route
+    # ==============================================================================
+    # 1. FARM REPORT ROUTE (Link to Dashboard Button)
+    # ==============================================================================
+    @app.route('/admin/generate-farm-report')
+    def generate_farm_report():
+        # Set Singapore Time context
+        sgt = pytz.timezone('Asia/Singapore')
+        today_str = datetime.now(sgt).strftime('%Y-%m-%d')
+        
+        # Query for today's confirmed orders
+        # We group by Leader to protect individual buyer particulars
+        report_data = db.session.query(
+            GroupLeader.name,
+            WhatsAppOrder.product_name,
+            db.func.sum(WhatsAppOrder.quantity)
+        ).join(GroupLeader, WhatsAppOrder.leader_id == GroupLeader.id)\
+        .filter(db.func.strftime('%Y-%m-%d', WhatsAppOrder.timestamp) == today_str)\
+        .group_by(GroupLeader.name, WhatsAppOrder.product_name).all()
+
+        # Generate the CSV in-memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Leader Name', 'Product', 'Total Quantity'])
+        
+        for row in report_data:
+            writer.writerow(row)
+        
+        # Send file to browser for ERP/Microsoft Dynamics sync
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename=farm_report_{today_str}.csv"}
+        )
+
+    # ==============================================================================
+    # 2. Global Routes
+    # ==============================================================================
     @app.route('/favicon.ico')
     def favicon_root():
         return send_from_directory(
@@ -29,7 +69,6 @@ def create_app():
             mimetype='image/png'
         )
 
-    # Global Routes 
     @app.route('/')
     def index(): return render_template('index.html')
 
@@ -62,4 +101,5 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
+    # Running on port 5001 as per your request
     app.run(debug=True, port=5001)

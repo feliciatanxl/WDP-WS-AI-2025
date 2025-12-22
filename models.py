@@ -35,7 +35,7 @@ class WhatsAppOrder(db.Model):
     product_name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     total_price = db.Column(db.Float, nullable=False)
-    commission_earned = db.Column(db.Float, default=0.0) # For leader payout
+    commission_earned = db.Column(db.Float, default=0.0)
     order_status = db.Column(db.String(50), default='New Order')
     timestamp = db.Column(db.DateTime, default=get_sg_time)
 
@@ -64,7 +64,6 @@ class Customer(db.Model):
     phone = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(120))
     leader_id = db.Column(db.Integer, db.ForeignKey('group_leader.id'))
-    # Link back to orders
     orders = db.relationship('WhatsAppOrder', backref='buyer', lazy=True)
 
 class GroupLeader(db.Model):
@@ -72,5 +71,11 @@ class GroupLeader(db.Model):
     name = db.Column(db.String(100), nullable=False)
     area = db.Column(db.String(100)) 
     members = db.relationship('Customer', backref='leader', lazy=True)
-    # Link back to orders for commission tracking
     leader_orders = db.relationship('WhatsAppOrder', backref='handling_leader', lazy=True)
+
+class StockAlert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    customer_phone = db.Column(db.String(20), nullable=False)
+    product_name = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=get_sg_time) # Uses your SGT function
+    is_notified = db.Column(db.Boolean, default=False)
