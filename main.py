@@ -2,13 +2,16 @@ import os
 import io
 import csv
 import pytz
-import requests  # Required for WhatsApp API calls
+import requests
 from datetime import datetime
 from flask import Flask, send_from_directory, render_template, Response, request, redirect, url_for
-from models import db, WhatsAppOrder, GroupLeader, Product, StockAlert 
+
+# Added missing imports for the leader route logic
+from models import db, WhatsAppOrder, GroupLeader, Product, StockAlert, Customer, WhatsAppLead 
 from contact.route import contact_bp 
 from admin.routes import admin_bp 
-from sqlalchemy.orm.attributes import flag_modified # Required for DB persistence
+from leader.route import leader_bp
+from sqlalchemy.orm.attributes import flag_modified
 
 def create_app():
     app = Flask(__name__)
@@ -25,6 +28,7 @@ def create_app():
     # Register Blueprints
     app.register_blueprint(contact_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(leader_bp)
 
     # ==============================================================================
     # 1. AUTOMATED STOCK ALERT TRIGGER
@@ -60,7 +64,7 @@ def create_app():
         db.session.commit()
 
     # ==============================================================================
-    # 2. PRODUCT UPDATE ROUTE (Two-Way Auto-Sync Fix)
+    # 2. PRODUCT UPDATE ROUTE
     # ==============================================================================
     @app.route('/admin/update-stock-level', methods=['POST'])
     def update_stock_level():
@@ -70,49 +74,36 @@ def create_app():
         product = Product.query.get(product_id)
         if product:
             old_qty = product.available_qty
-            
-            # Update core fields
             product.name = request.form.get('name')
             product.available_qty = new_qty
             product.price = float(request.form.get('price'))
             product.image_file = request.form.get('image_file')
 
-            # --- THE TWO-WAY DB SYNC FIX ---
             if new_qty <= 0:
-                # Force "Out of Stock" string in DB if qty is 0
                 product.status = "Out of Stock"
             else:
-                # Force "In Stock" string in DB if qty is 1 or more
-                # This fixes the issue of items staying "Out of Stock" when quantity > 0
                 product.status = "In Stock"
             
-            # Mark status as modified to force SQLAlchemy to push text to leafplant.db
             flag_modified(product, "status")
             db.session.commit()
             
-            # 2. TRIGGER LOGIC: Only if it was 0 and now it is > 0
             if old_qty == 0 and new_qty > 0:
                 send_restock_broadcast(product.name, new_qty)
-                print(f"DEBUG: Restock broadcast triggered for {product.name}")
                 
         return redirect('/admin/dashboard#products')
 
     # ==============================================================================
-    # 3. FARM REPORT ROUTE (Keep as is)
-    # ==============================================================================
-    # ==============================================================================
-    # 3. FARM REPORT ROUTE (Updated with Phone and Area)
+    # 3. FARM REPORT ROUTE
     # ==============================================================================
     @app.route('/admin/generate-farm-report')
     def generate_farm_report():
         sgt = pytz.timezone('Asia/Singapore')
         today_str = datetime.now(sgt).strftime('%Y-%m-%d')
         
-        # 1. Update query to include Leader phone and area
         report_data = db.session.query(
             GroupLeader.name,
-            GroupLeader.phone,      # Added phone
-            GroupLeader.area,       # Added area
+            GroupLeader.phone,
+            GroupLeader.area,
             WhatsAppOrder.product_name,
             db.func.sum(WhatsAppOrder.quantity)
         ).join(GroupLeader, WhatsAppOrder.leader_id == GroupLeader.id)\
@@ -121,11 +112,8 @@ def create_app():
 
         output = io.StringIO()
         writer = csv.writer(output)
-        
-        # 2. Update Header Row
         writer.writerow(['Leader Name', 'Leader Phone', 'Area', 'Product', 'Total Quantity'])
         
-        # 3. Write data rows
         for row in report_data:
             writer.writerow(row)
         
@@ -136,16 +124,45 @@ def create_app():
         )
 
     # ==============================================================================
-    # 4. Global Routes (Keep as is)
+    # 4. LEADER ROUTE (FIXED POSITION & LOGIC)
     # ==============================================================================
-    @app.route('/favicon.ico')
-    def favicon_root():
-        return send_from_directory(
-            os.path.join(app.root_path, 'static', 'image'),
-            'favicon.png', 
-            mimetype='image/png'
-        )
+    @app.route('/leader')
+    def leader():
+        # Fetch the first leader for testing synchronization
+        leader_data = GroupLeader.query.first()
+        
+        if not leader_data:
+            return "No leader found. Please add a leader in the Admin panel first."
 
+        # Fetch related data
+        orders = WhatsAppOrder.query.filter_by(leader_id=leader_data.id).all()
+        neighbors = Customer.query.filter_by(leader_id=leader_data.id).all()
+        
+        # Pull leads based on neighborhood area match
+        pending_leads = WhatsAppLead.query.filter(
+            WhatsAppLead.neighborhood.ilike(f"%{leader_data.area}%")
+        ).all()
+
+        # Perform Calculations
+        total_sales = sum(order.total_price for order in orders if order.order_status == 'Confirmed')
+        pending_commission = total_sales * 0.111
+        
+        sgt = pytz.timezone('Asia/Singapore')
+        today = datetime.now(sgt).date()
+        today_orders_count = sum(1 for o in orders if o.timestamp.date() == today)
+
+        return render_template('leader.html', 
+                               leader=leader_data,
+                               orders=orders,
+                               neighbors=neighbors,
+                               pending_leads=pending_leads,
+                               total_sales=total_sales,
+                               pending_commission=pending_commission,
+                               today_orders_count=today_orders_count)
+
+    # ==============================================================================
+    # 5. GLOBAL ROUTES
+    # ==============================================================================
     @app.route('/')
     def index(): return render_template('index.html')
 
@@ -161,21 +178,9 @@ def create_app():
     @app.route('/account')
     def account(): return render_template('account.html')
 
-    @app.route('/orders')
-    def orders(): return render_template('orders.html')
-
-    @app.route('/payment')
-    def payment(): return render_template('payment.html')
-
-    @app.route('/review')
-    def review(): return render_template('review.html')
-
-    @app.route('/leader')
-    def leader():
-        leader_data = GroupLeader.query.first() 
-        if not leader_data:
-            leader_data = {"name": "Test Leader", "area": "Pending Area", "members": []}
-        return render_template('leader.html', leader=leader_data)
+    @app.route('/favicon.ico')
+    def favicon_root():
+        return send_from_directory(os.path.join(app.root_path, 'static', 'image'), 'favicon.png')
 
     # Create Tables
     with app.app_context():
