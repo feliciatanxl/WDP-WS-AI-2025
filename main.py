@@ -100,22 +100,32 @@ def create_app():
     # ==============================================================================
     # 3. FARM REPORT ROUTE (Keep as is)
     # ==============================================================================
+    # ==============================================================================
+    # 3. FARM REPORT ROUTE (Updated with Phone and Area)
+    # ==============================================================================
     @app.route('/admin/generate-farm-report')
     def generate_farm_report():
         sgt = pytz.timezone('Asia/Singapore')
         today_str = datetime.now(sgt).strftime('%Y-%m-%d')
         
+        # 1. Update query to include Leader phone and area
         report_data = db.session.query(
             GroupLeader.name,
+            GroupLeader.phone,      # Added phone
+            GroupLeader.area,       # Added area
             WhatsAppOrder.product_name,
             db.func.sum(WhatsAppOrder.quantity)
         ).join(GroupLeader, WhatsAppOrder.leader_id == GroupLeader.id)\
         .filter(db.func.strftime('%Y-%m-%d', WhatsAppOrder.timestamp) == today_str)\
-        .group_by(GroupLeader.name, WhatsAppOrder.product_name).all()
+        .group_by(GroupLeader.name, GroupLeader.phone, GroupLeader.area, WhatsAppOrder.product_name).all()
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Leader Name', 'Product', 'Total Quantity'])
+        
+        # 2. Update Header Row
+        writer.writerow(['Leader Name', 'Leader Phone', 'Area', 'Product', 'Total Quantity'])
+        
+        # 3. Write data rows
         for row in report_data:
             writer.writerow(row)
         

@@ -17,6 +17,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import pytz
 from models import db, ContactInquiry, Product, Customer, WhatsAppOrder, WhatsAppLead, StockAlert
+from sqlalchemy.orm.attributes import flag_modified
 
 # ==============================================================================
 # 2. Configuration & Security FIXED
@@ -45,24 +46,34 @@ except Exception:
     client = None
 
 # ==============================================================================
-# 3. Database Helper Logic (RESTORED deduct_stock_db)
+# 3. Database Helper Logic (FIXED: Two-Way Sync for AI Agent)
 # ==============================================================================
 def get_inventory_string():
+    # --- THE CRITICAL FIX ---
+    db.session.expire_all() # This forces the bot to re-read the DB file right now
+    
     products = Product.query.all()
     if not products: return "No stock data available."
     output = "CURRENT FARM INVENTORY:\n"
     for p in products:
-        # We use a clear label for the AI to see
-        status = "AVAILABLE" if p.available_qty > 0 else "SOLD OUT"
-        output += f"- {p.name}: ${p.price} | {p.available_qty} left ({status})\n"
+        # Use the actual STATUS column from the DB
+        output += f"- {p.name}: ${p.price} | {p.available_qty} left ({p.status})\n"
     return output
 
-# THIS IS THE MISSING FUNCTION THAT FIXES YOUR PYLANCE ERROR
 def deduct_stock_db(product_name, qty_to_deduct):
-    # Case-insensitive search for the product
     product = Product.query.filter(Product.name.ilike(f"%{product_name}%")).first()
+    
     if product and product.available_qty >= int(qty_to_deduct):
         product.available_qty -= int(qty_to_deduct)
+        
+        # --- THE AUTO-SYNC FIX ---
+        if product.available_qty <= 0:
+            product.status = "Out of Stock"
+        else:
+            product.status = "In Stock"
+        
+        # Mark as modified to force the write to the .db file
+        flag_modified(product, "status")
         db.session.commit()
         return True
     return False
@@ -127,10 +138,13 @@ def handle_new_prospect(customer_number, customer_message, history):
         return "Welcome! May I have your name and neighborhood to link you with a local leader?"
 
 # ==============================================================================
-# 5. AI Sales Engine (FINAL REFINEMENT: Fix Restock-to-Sold-Out Loop)
+# 5. AI Sales Engine (FIXED: Live Data Supremacy)
 # ==============================================================================
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."
+    
+    # CRITICAL: Force session refresh before checking stock
+    db.session.expire_all() 
     stock_list = get_inventory_string()
     
     # 1. Retrieve Leader & Format Phone (Existing Logic)
@@ -139,24 +153,21 @@ def get_openai_response(customer_message, customer_number, customer_obj):
     clean_phone = str(raw_phone).split('.')[0] 
     formatted_phone = f"+65 {clean_phone[2:]}" if clean_phone.startswith('65') else clean_phone
     
-    # 2. CONTEXTUAL MEMORY CHECK (The "Mao Bai" Memory Fix)
+    # 2. CONTEXTUAL MEMORY CHECK (Existing Logic)
     recent_history = conversation_history.get(customer_number, [])
     last_ai_msg = recent_history[-1]['content'] if recent_history and recent_history[-1]['role'] == 'assistant' else ""
     
     restock_context = ""
     is_restock_flow = False
     
-    # Search history for the specific "back in stock" pattern from main.py
     if "back in stock" in last_ai_msg.lower():
         match = re.search(r"back in stock: (.*?) \(", last_ai_msg)
         if match:
             restocked_item = match.group(1)
-            # This context forces the AI to assume "Yes" refers to the restocked item
             restock_context = f"STRICT MODE: The user is responding to a restock alert for {restocked_item}. Focus ONLY on {restocked_item}. DO NOT suggest alternatives."
             is_restock_flow = True
 
-    # 3. ENHANCED STOCK ALERT CAPTURE (FIX: Skip if already in restock flow)
-    # This prevents the bot from seeing the product name and thinking it's sold out
+    # 3. ENHANCED STOCK ALERT CAPTURE (Existing Logic)
     if not is_restock_flow:
         products = Product.query.all()
         for p in products:
@@ -174,15 +185,19 @@ def get_openai_response(customer_message, customer_number, customer_obj):
 
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%A, %d %B %Y")
 
-    # 4. REFINED SYSTEM PROMPT (Eliminating Alternative Distractions)
+    # 4. REFINED SYSTEM PROMPT (FIXED: Force LIVE STOCK priority)
     system_prompt = f"""
     You are 'Farm Sales AI'. Today is {sg_now}. 
     Customer: {customer_obj.name}. Leader: {leader_name}.
     
-    MEMORY CONTEXT: {restock_context}
+    LIVE DATA SUPREMACY:
+    - ALWAYS prioritize the CURRENT STOCK list below over any previous messages in this chat.
+    - If CURRENT STOCK shows an item is "AVAILABLE" or has units > 0, you MUST ignore any previous "sold out" mentions.
+    - If an item is back in stock, process the order immediately.
     
     RULES:
     - CURRENT STOCK: {stock_list}
+    - MEMORY CONTEXT: {restock_context}
     - RESTOCK FLOW: If MEMORY CONTEXT is active, immediately ask for quantity of THAT item.
     - NO ALTERNATIVES: Do NOT suggest other products if the user is replying to a restock alert.
     - SOLD OUT LOGIC: If an item is "SOLD OUT" (and NOT in a restock flow), only ask: "Would you like me to alert you when it's back in stock?"
@@ -199,21 +214,20 @@ def get_openai_response(customer_message, customer_number, customer_obj):
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        # 5. GHOST MESSAGE CLEANING
+        # 5. GHOST MESSAGE CLEANING (Existing Logic)
         clean_reply = ai_reply.split('[[')[0].strip()
         ghost_phrases = ["How can I assist", "How can I help", "Is there anything else"]
         for phrase in ghost_phrases:
             if phrase in clean_reply:
                 clean_reply = clean_reply.split(phrase)[0].strip()
 
-        # 6. ORDER PROCESSING (Logic remains same for available items)
+        # 6. ORDER PROCESSING (Existing Logic)
         data_match = re.search(r"\[\[DATA:\s*(.*?)\s*\]\]", ai_reply)
         if data_match:
             parts = [p.strip() for p in data_match.group(1).split('|')]
             if len(parts) == 3:
                 item_name, qty_str, total_cost = parts[0], re.sub(r'[^\d]', '', parts[1]), float(re.sub(r'[^\d.]', '', parts[2]))
                 
-                # Check stock and deduct (Uses restored Section 3 function)
                 if qty_str and deduct_stock_db(item_name, int(qty_str)):
                     qty = int(qty_str)
                     new_order = WhatsAppOrder(
