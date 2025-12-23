@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, sessio
 from models import db, ContactInquiry, Product
 from sqlalchemy import func
 from sqlalchemy.orm.attributes import flag_modified
+from datetime import timedelta # Add this to your imports
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -26,7 +27,7 @@ def dashboard():
         .filter(ContactInquiry.id <= visible_threshold)\
         .order_by(ContactInquiry.created_at.desc())\
         .all()
-        
+
     last_seen_id = int(session.get('last_seen_id', 0))
 
     # --- PRODUCT LOGIC ---
