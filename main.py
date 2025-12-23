@@ -94,7 +94,13 @@ def create_app():
     def review(): return render_template('review.html')
 
     @app.route('/leader')
-    def leader(): return render_template('leader.html')
+    def leader():
+        leader_data = GroupLeader.query.first() 
+
+        if not leader_data:
+            leader_data = {"name": "Test Leader", "area": "Pending Area", "members": []}
+
+        return render_template('leader.html', leader=leader_data)
 
     # Create Tables
     with app.app_context():
@@ -104,5 +110,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    # Running on port 5001 as per your request
     app.run(debug=True, port=5001)
