@@ -45,18 +45,21 @@ except Exception:
     client = None
 
 # ==============================================================================
-# 3. Database Helper Logic
+# 3. Database Helper Logic (RESTORED deduct_stock_db)
 # ==============================================================================
 def get_inventory_string():
     products = Product.query.all()
     if not products: return "No stock data available."
     output = "CURRENT FARM INVENTORY:\n"
     for p in products:
+        # We use a clear label for the AI to see
         status = "AVAILABLE" if p.available_qty > 0 else "SOLD OUT"
         output += f"- {p.name}: ${p.price} | {p.available_qty} left ({status})\n"
     return output
 
+# THIS IS THE MISSING FUNCTION THAT FIXES YOUR PYLANCE ERROR
 def deduct_stock_db(product_name, qty_to_deduct):
+    # Case-insensitive search for the product
     product = Product.query.filter(Product.name.ilike(f"%{product_name}%")).first()
     if product and product.available_qty >= int(qty_to_deduct):
         product.available_qty -= int(qty_to_deduct)
@@ -65,12 +68,11 @@ def deduct_stock_db(product_name, qty_to_deduct):
     return False
 
 # ==============================================================================
-# 4. New Prospect Handling (UPDATED: Data Summary & Leader Assignment) FIXED
+# 4. New Prospect Handling FIXED
 # ==============================================================================
 def handle_new_prospect(customer_number, customer_message, history):
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%Y-%m-%d %H:%M:%S")
 
-    # REFINED PROMPT: Removes redundant instructions to prevent duplicate text
     system_prompt = f"""
     You are 'Leaf Plant Onboarding AI'. Time: {sg_now}.
     
@@ -80,7 +82,7 @@ def handle_new_prospect(customer_number, customer_message, history):
     1. Once you have both pieces of info, provide a SINGLE, clear confirmation.
        Example: "Thank you, [Name]! I've noted that you are from [Neighborhood]."
     
-    2. Then, explain the next steps: "Our team will assign you to a local Group Buy Leader who will contact you to finalize your registration. This system ensures fresh delivery and protects your private data."
+    2. Then, explain next steps: "Our team will assign you to a local Group Buy Leader who will contact you to finalize your registration. This system ensures fresh delivery and protects your private data."
     
     STRICT DATA EXTRACTION:
     At the very end of your message, you MUST include these exact tags for our database:
@@ -107,23 +109,17 @@ def handle_new_prospect(customer_number, customer_message, history):
                     phone=customer_number,
                     extracted_name=name_match.group(1).strip() if name_match else "New Prospect",
                     neighborhood=address_match.group(1).strip() if address_match else "Pending",
-                    status='Awaiting Info'
+                    status='Awaiting Assignment'
                 )
                 db.session.add(new_lead)
             else:
                 if address_match: existing_lead.neighborhood = address_match.group(1).strip()
                 if name_match: existing_lead.extracted_name = name_match.group(1).strip()
-                if existing_lead.neighborhood != "Pending" and existing_lead.extracted_name != "New Prospect":
-                    existing_lead.status = 'Awaiting Assignment'
+                existing_lead.status = 'Awaiting Assignment'
             db.session.commit()
 
-        # 2. CLEANING LOGIC: This stops the customer from seeing the "Tags" or duplicate info
-        # We strip out everything starting from the first double bracket [[
+        # 2. CLEANING LOGIC: Cut off technical tags before sending to user
         clean_reply = ai_reply.split('[[')[0].strip()
-        
-        # Final safety check: if the AI added bullet points like in your screenshot, remove them
-        clean_reply = clean_reply.replace('· Tag:', '').replace('• Tag:', '').strip()
-        
         return clean_reply
 
     except Exception as e:
@@ -131,34 +127,67 @@ def handle_new_prospect(customer_number, customer_message, history):
         return "Welcome! May I have your name and neighborhood to link you with a local leader?"
 
 # ==============================================================================
-# 5. AI Sales Engine 
+# 5. AI Sales Engine (FINAL REFINEMENT: Fix Restock-to-Sold-Out Loop)
 # ==============================================================================
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."
     stock_list = get_inventory_string()
     
-    # Retrieve Leader details from the database
+    # 1. Retrieve Leader & Format Phone (Existing Logic)
     leader_name = customer_obj.leader.name if customer_obj.leader else "your local leader"
-    leader_phone = customer_obj.leader.phone if customer_obj.leader else "our main line"
+    raw_phone = customer_obj.leader.phone if customer_obj.leader else "our main line"
+    clean_phone = str(raw_phone).split('.')[0] 
+    formatted_phone = f"+65 {clean_phone[2:]}" if clean_phone.startswith('65') else clean_phone
     
+    # 2. CONTEXTUAL MEMORY CHECK (The "Mao Bai" Memory Fix)
+    recent_history = conversation_history.get(customer_number, [])
+    last_ai_msg = recent_history[-1]['content'] if recent_history and recent_history[-1]['role'] == 'assistant' else ""
+    
+    restock_context = ""
+    is_restock_flow = False
+    
+    # Search history for the specific "back in stock" pattern from main.py
+    if "back in stock" in last_ai_msg.lower():
+        match = re.search(r"back in stock: (.*?) \(", last_ai_msg)
+        if match:
+            restocked_item = match.group(1)
+            # This context forces the AI to assume "Yes" refers to the restocked item
+            restock_context = f"STRICT MODE: The user is responding to a restock alert for {restocked_item}. Focus ONLY on {restocked_item}. DO NOT suggest alternatives."
+            is_restock_flow = True
+
+    # 3. ENHANCED STOCK ALERT CAPTURE (FIX: Skip if already in restock flow)
+    # This prevents the bot from seeing the product name and thinking it's sold out
+    if not is_restock_flow:
+        products = Product.query.all()
+        for p in products:
+            if p.available_qty == 0:
+                if p.name.lower() in customer_message.lower():
+                    existing_alert = StockAlert.query.filter_by(
+                        customer_phone=customer_number, 
+                        product_name=p.name, 
+                        is_notified=False
+                    ).first()
+                    if not existing_alert:
+                        new_alert = StockAlert(customer_phone=customer_number, product_name=p.name)
+                        db.session.add(new_alert)
+                        db.session.commit()
+
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%A, %d %B %Y")
 
+    # 4. REFINED SYSTEM PROMPT (Eliminating Alternative Distractions)
     system_prompt = f"""
     You are 'Farm Sales AI'. Today is {sg_now}. 
     Customer: {customer_obj.name}. Leader: {leader_name}.
     
-    DELIVERY PROTOCOL:
-    - You MUST inform the customer that their delivery is managed by their Group Buy Leader, {leader_name}.
-    - Provide the Leader's contact number: {leader_phone} for any questions.
-    - Explain that the farm only sees bulk order totals to protect customer privacy.
-
+    MEMORY CONTEXT: {restock_context}
+    
     RULES:
-    1. LANGUAGE: Match the user's language exactly.
-    2. CONTEXT: If they say "Yes" to a restock alert, assume they mean that item.
-    3. NO GENERIC TERMS: Always use specific names (e.g., "Mizuna").
-    4. DELIVERY: All confirmed orders are for NEXT-DAY delivery.
-    5. INVENTORY: {stock_list}. Member gets 10% discount.
-    6. CONFIRMATION: Ask for quantity -> Show Total -> Wait for "Yes" -> Tag [[DATA: Item | Qty | Total]].
+    - CURRENT STOCK: {stock_list}
+    - RESTOCK FLOW: If MEMORY CONTEXT is active, immediately ask for quantity of THAT item.
+    - NO ALTERNATIVES: Do NOT suggest other products if the user is replying to a restock alert.
+    - SOLD OUT LOGIC: If an item is "SOLD OUT" (and NOT in a restock flow), only ask: "Would you like me to alert you when it's back in stock?"
+    - DELIVERY: Managed by {leader_name} ({formatted_phone}). NEXT-DAY delivery.
+    - CONFIRMATION: Wait for "Yes" -> Tag [[DATA: Item | Qty | Total]].
     """
 
     if customer_number not in conversation_history: conversation_history[customer_number] = []
@@ -170,47 +199,43 @@ def get_openai_response(customer_message, customer_number, customer_obj):
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        # --- ORDER PROCESSING (Safety Guard) ---
+        # 5. GHOST MESSAGE CLEANING
+        clean_reply = ai_reply.split('[[')[0].strip()
+        ghost_phrases = ["How can I assist", "How can I help", "Is there anything else"]
+        for phrase in ghost_phrases:
+            if phrase in clean_reply:
+                clean_reply = clean_reply.split(phrase)[0].strip()
+
+        # 6. ORDER PROCESSING (Logic remains same for available items)
         data_match = re.search(r"\[\[DATA:\s*(.*?)\s*\]\]", ai_reply)
         if data_match:
             parts = [p.strip() for p in data_match.group(1).split('|')]
             if len(parts) == 3:
-                item_name = parts[0]
-                qty_str = re.sub(r'[^\d]', '', parts[1])
+                item_name, qty_str, total_cost = parts[0], re.sub(r'[^\d]', '', parts[1]), float(re.sub(r'[^\d.]', '', parts[2]))
                 
-                if not qty_str:
-                    return re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
-
-                qty = int(qty_str)
-                total_cost = float(re.sub(r'[^\d.]', '', parts[2]))
-                
-                if deduct_stock_db(item_name, qty):
+                # Check stock and deduct (Uses restored Section 3 function)
+                if qty_str and deduct_stock_db(item_name, int(qty_str)):
+                    qty = int(qty_str)
                     new_order = WhatsAppOrder(
-                        customer_id=customer_obj.id, 
-                        leader_id=customer_obj.leader_id,
-                        customer_phone=customer_number, 
-                        product_name=item_name,
-                        quantity=qty, 
-                        total_price=total_cost,
-                        commission_earned=total_cost * 0.111, 
-                        order_status='Confirmed'
+                        customer_id=customer_obj.id, leader_id=customer_obj.leader_id,
+                        customer_phone=customer_number, product_name=item_name,
+                        quantity=qty, total_price=total_cost,
+                        commission_earned=total_cost * 0.111, order_status='Confirmed'
                     )
                     db.session.add(new_order)
                     db.session.commit()
                     
-                    # Updated Secured message with Leader Contact
-                    clean_reply = re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
-                    return (f"{clean_reply}\n\n"
-                            f"✅ *ORDER SECURED*\n"
+                    return (f"{clean_reply}\n\n✅ *ORDER SECURED*\n"
                             f"{qty}x {item_name} confirmed for next-day delivery!\n\n"
                             f"🚜 *Logistics Note*: Your Group Buy Leader, *{leader_name}*, will prepare your delivery. "
-                            f"Contact them at *{leader_phone}* if you have questions.")
+                            f"Contact them at *{formatted_phone}*.")
 
-        return re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
+        return clean_reply
+        
     except Exception as e:
         print(f"DEBUG ERROR: {e}")
         return "I'm having trouble connecting. Try again later!"
-
+    
 # ==============================================================================
 # 6. Webhook Handling (The Gatekeeper)
 # ==============================================================================

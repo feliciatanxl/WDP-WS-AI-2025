@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash
-from models import db, ContactInquiry, Product  # 1. Import Product model
+from models import db, ContactInquiry, Product
 from sqlalchemy import func
+from sqlalchemy.orm.attributes import flag_modified
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -28,8 +29,7 @@ def dashboard():
         
     last_seen_id = int(session.get('last_seen_id', 0))
 
-    # --- PRODUCT LOGIC (SQLite - Fixes 'price' error) ---
-    # We query the Product model directly from leafplant.db
+    # --- PRODUCT LOGIC ---
     products = Product.query.order_by(Product.id.desc()).all()
 
     return render_template('admin.html', 
@@ -37,59 +37,69 @@ def dashboard():
                             products=products, 
                             last_seen_id=last_seen_id)
 
-# Adding products to SQLite
-
+# Adding products with automatic status detection
 @admin_bp.route("/admin/products/add", methods=['POST'])
 def add_product():
-    # Capture all 5 fields from the form
     name = request.form.get('name')
-    stock = request.form.get('stock')
-    price = request.form.get('price')
-    status = request.form.get('status')
-    image_file = request.form.get('image_file')
+    stock = int(request.form.get('stock', 0))
+    price = float(request.form.get('price', 0.0))
+    image_file = request.form.get('image_file', 'default_product.jpg')
+
+    # AUTO-STATUS: Forces correct string in DB based on initial stock
+    status = "In Stock" if stock > 0 else "Out of Stock"
 
     try:
         new_product = Product(
             name=name,
-            available_qty=int(stock),
-            price=float(price),
-            status=status,        # Save the status from the dropdown
-            image_file=image_file # Save the image link
+            available_qty=stock,
+            price=price,
+            status=status,
+            image_file=image_file
         )
         db.session.add(new_product)
         db.session.commit()
-        print(f"SUCCESS: Added {name} to leafplant.db")
+        print(f"✅ SUCCESS: Added {name} as {status} to DB")
     except Exception as e:
         db.session.rollback()
-        print(f"Insert Error: {e}")
+        print(f"❌ Insert Error: {e}")
 
     return redirect(url_for('admin.dashboard') + '#products')
 
-#edit product
+# Editing products with TWO-WAY forced database synchronization
 @admin_bp.route("/admin/products/edit/<int:id>", methods=['POST'])
 def edit_product(id):
-    # 1. Find the product in leafplant.db by its ID
     product = Product.query.get_or_404(id)
     
     try:
-        # 2. Update the product object with data from the modal form
+        new_qty = int(request.form.get('stock', 0))
+
+        # Update core fields
         product.name = request.form.get('name')
-        product.available_qty = int(request.form.get('stock'))
-        product.price = float(request.form.get('price'))
-        product.status = request.form.get('status')
+        product.available_qty = new_qty
+        product.price = float(request.form.get('price', 0.0))
         product.image_file = request.form.get('image_file')
 
-        # 3. Save (Commit) the changes to the database
+        # --- THE TWO-WAY DB SYNC FIX ---
+        if new_qty <= 0:
+            # Force "Out of Stock" string in DB if qty is 0
+            product.status = "Out of Stock"
+        else:
+            # Force "In Stock" string in DB if qty is 1 or more
+            # This fixes items that were stuck as 'Out of Stock' despite having units.
+            product.status = "In Stock"
+
+        # Mark 'status' as modified to force SQLAlchemy to push text to leafplant.db
+        flag_modified(product, "status")
         db.session.commit()
-        print(f"SUCCESS: Updated Product ID {id}")
+        print(f"✅ SUCCESS: DB updated ID {id} to {product.status}")
         
     except Exception as e:
         db.session.rollback()
-        print(f"UPDATE ERROR: {e}")
+        print(f"❌ UPDATE ERROR: {e}")
         
-    # 4. Redirect back to the dashboard product section
     return redirect(url_for('admin.dashboard') + '#products')
-# Delete product from SQLite
+
+# Delete product
 @admin_bp.route("/admin/products/delete/<int:id>")
 def delete_product(id):
     product = Product.query.get_or_404(id)
@@ -98,11 +108,11 @@ def delete_product(id):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f"Delete Error: {e}")
+        print(f"❌ Delete Error: {e}")
     
     return redirect(url_for('admin.dashboard') + '#products')
 
-# Inquiry Management (SQLite)
+# Inquiry Management
 @admin_bp.route('/admin/delete/<int:id>', methods=['POST'])
 def delete_inquiry(id):
     inquiry = ContactInquiry.query.get_or_404(id)
@@ -111,7 +121,7 @@ def delete_inquiry(id):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f"Error: {e}")
+        print(f"❌ Error: {e}")
         
     return redirect(url_for('admin.dashboard') + '?refresh=true&tab=customer-service')
 
@@ -126,6 +136,6 @@ def update_status(id):
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            print(f"Error updating status: {e}")
+            print(f"❌ Error updating status: {e}")
             
     return redirect(url_for('admin.dashboard') + '?refresh=true&tab=customer-service')

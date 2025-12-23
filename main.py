@@ -2,11 +2,13 @@ import os
 import io
 import csv
 import pytz
+import requests  # Required for WhatsApp API calls
 from datetime import datetime
-from flask import Flask, send_from_directory, render_template, Response
-from models import db, WhatsAppOrder, GroupLeader # Added models for the query
+from flask import Flask, send_from_directory, render_template, Response, request, redirect, url_for
+from models import db, WhatsAppOrder, GroupLeader, Product, StockAlert 
 from contact.route import contact_bp 
 from admin.routes import admin_bp 
+from sqlalchemy.orm.attributes import flag_modified # Required for DB persistence
 
 def create_app():
     app = Flask(__name__)
@@ -25,16 +27,84 @@ def create_app():
     app.register_blueprint(admin_bp)
 
     # ==============================================================================
-    # 1. FARM REPORT ROUTE (Link to Dashboard Button)
+    # 1. AUTOMATED STOCK ALERT TRIGGER
+    # ==============================================================================
+    def send_restock_broadcast(product_name, new_qty):
+        access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+        phone_id = os.getenv("PHONE_NUMBER_ID")
+        
+        pending_alerts = StockAlert.query.filter_by(
+            product_name=product_name, 
+            is_notified=False
+        ).all()
+        
+        for alert in pending_alerts:
+            message_body = f"Hi! Good news from the farm: back in stock: {product_name} ({new_qty} available). Would you like to place an order?"
+            
+            url = f"https://graph.facebook.com/v24.0/{phone_id}/messages"
+            headers = {"Authorization": f"Bearer {access_token}"}
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": alert.customer_phone,
+                "type": "text",
+                "text": {"body": message_body}
+            }
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    alert.is_notified = True 
+            except Exception as e:
+                print(f"Broadcast Error for {alert.customer_phone}: {e}")
+        
+        db.session.commit()
+
+    # ==============================================================================
+    # 2. PRODUCT UPDATE ROUTE (Two-Way Auto-Sync Fix)
+    # ==============================================================================
+    @app.route('/admin/update-stock-level', methods=['POST'])
+    def update_stock_level():
+        product_id = request.form.get('product_id') 
+        new_qty = int(request.form.get('stock', 0))
+        
+        product = Product.query.get(product_id)
+        if product:
+            old_qty = product.available_qty
+            
+            # Update core fields
+            product.name = request.form.get('name')
+            product.available_qty = new_qty
+            product.price = float(request.form.get('price'))
+            product.image_file = request.form.get('image_file')
+
+            # --- THE TWO-WAY DB SYNC FIX ---
+            if new_qty <= 0:
+                # Force "Out of Stock" string in DB if qty is 0
+                product.status = "Out of Stock"
+            else:
+                # Force "In Stock" string in DB if qty is 1 or more
+                # This fixes the issue of items staying "Out of Stock" when quantity > 0
+                product.status = "In Stock"
+            
+            # Mark status as modified to force SQLAlchemy to push text to leafplant.db
+            flag_modified(product, "status")
+            db.session.commit()
+            
+            # 2. TRIGGER LOGIC: Only if it was 0 and now it is > 0
+            if old_qty == 0 and new_qty > 0:
+                send_restock_broadcast(product.name, new_qty)
+                print(f"DEBUG: Restock broadcast triggered for {product.name}")
+                
+        return redirect('/admin/dashboard#products')
+
+    # ==============================================================================
+    # 3. FARM REPORT ROUTE (Keep as is)
     # ==============================================================================
     @app.route('/admin/generate-farm-report')
     def generate_farm_report():
-        # Set Singapore Time context
         sgt = pytz.timezone('Asia/Singapore')
         today_str = datetime.now(sgt).strftime('%Y-%m-%d')
         
-        # Query for today's confirmed orders
-        # We group by Leader to protect individual buyer particulars
         report_data = db.session.query(
             GroupLeader.name,
             WhatsAppOrder.product_name,
@@ -43,15 +113,12 @@ def create_app():
         .filter(db.func.strftime('%Y-%m-%d', WhatsAppOrder.timestamp) == today_str)\
         .group_by(GroupLeader.name, WhatsAppOrder.product_name).all()
 
-        # Generate the CSV in-memory
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(['Leader Name', 'Product', 'Total Quantity'])
-        
         for row in report_data:
             writer.writerow(row)
         
-        # Send file to browser for ERP/Microsoft Dynamics sync
         return Response(
             output.getvalue(),
             mimetype="text/csv",
@@ -59,7 +126,7 @@ def create_app():
         )
 
     # ==============================================================================
-    # 2. Global Routes
+    # 4. Global Routes (Keep as is)
     # ==============================================================================
     @app.route('/favicon.ico')
     def favicon_root():
@@ -96,10 +163,8 @@ def create_app():
     @app.route('/leader')
     def leader():
         leader_data = GroupLeader.query.first() 
-
         if not leader_data:
             leader_data = {"name": "Test Leader", "area": "Pending Area", "members": []}
-
         return render_template('leader.html', leader=leader_data)
 
     # Create Tables

@@ -218,7 +218,6 @@
                                                     <div class="modal-content">
                                                         <div class="modal-header">
                                                             <h5 class="modal-title text-primary-green fw-bold">Inquiry #{{ inquiry.id }} Details</h5>
-                                                            <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
                                                         </div>
                                                         <div class="modal-body text-start">
                                                             <div class="row mb-3">
@@ -259,7 +258,6 @@
                                                     <div class="modal-content">
                                                         <div class="modal-header">
                                                             <h5 class="modal-title text-danger fw-bold">Confirm Deletion</h5>
-                                                            <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> -->
                                                         </div>
                                                         <div class="modal-body text-start">
                                                             Are you sure you want to permanently delete the inquiry from <strong>{{ inquiry.name }}</strong>?
@@ -268,7 +266,6 @@
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                            
                                                             <form action="{{ url_for('admin.delete_inquiry', id=inquiry.id) }}" method="POST" class="m-0">
                                                                 <button type="submit" class="btn btn-danger">Delete Permanently</button>
                                                             </form>
@@ -361,11 +358,11 @@
                     <img src="{{ product.image_file }}" alt="Product" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
                 </td>
                 <td>{{ product.name }}</td>
-                <td>{{ product.available_qty }} units</td>
+                <td id="qty-{{ product.id }}">{{ product.available_qty }} units</td>
                 <td>${{ "%.2f"|format(product.price) }}</td>
                 <td>
-                    <span class="badge {% if product.status == 'In Stock' %}bg-success{% else %}bg-danger{% endif %}">
-                        {{ product.status }}
+                    <span id="status-{{ product.id }}" class="badge {% if product.status == 'In Stock' and product.available_qty > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if product.available_qty > 0 %}{{ product.status }}{% else %}Out of Stock{% endif %}
                     </span>
                 </td>
                 <td>
@@ -379,45 +376,48 @@
             </tr>
 
             <div class="modal fade" id="editModal{{ product.id }}" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form action="/admin/products/edit/{{ product.id }}" method="POST">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Edit Product: {{ product.name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="/admin/update-stock-level" method="POST">
+                        
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Product: {{ product.name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Product Name</label>
+                                <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
                             </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name</label>
-                                    <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Stock Quantity</label>
-                                    <input type="number" name="stock" class="form-control" value="{{ product.available_qty }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Price</label>
-                                    <input type="number" step="0.01" name="price" class="form-control" value="{{ product.price }}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select name="status" class="form-select">
-                                        <option value="In Stock" {% if product.status == 'In Stock' %}selected{% endif %}>In Stock</option>
-                                        <option value="Out of Stock" {% if product.status == 'Out of Stock' %}selected{% endif %}>Out of Stock</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Image Link/Filename</label>
-                                    <input type="text" name="image_file" class="form-control" value="{{ product.image_file }}">
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label">Stock Quantity</label>
+                                <input type="number" name="stock" class="form-control" value="{{ product.available_qty }}" required>
                             </div>
-                            <div class="modal-footer">
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <div class="mb-3">
+                                <label class="form-label">Price</label>
+                                <input type="number" step="0.01" name="price" class="form-control" value="{{ product.price }}" required>
                             </div>
-                        </form>
-                    </div>
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="In Stock" {% if product.status == 'In Stock' %}selected{% endif %}>In Stock</option>
+                                    <option value="Out of Stock" {% if product.status == 'Out of Stock' %}selected{% endif %}>Out of Stock</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Image Link/Filename</label>
+                                <input type="text" name="image_file" class="form-control" value="{{ product.image_file }}">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Save Changes & Notify Waiting Customers</button>
+                        </div>
+                    </form>
                 </div>
             </div>
+        </div>
             {% endfor %}
             
             {% if not products %}
@@ -529,6 +529,40 @@
                 }
             }
         });
+
+        // ==============================================================================
+        // 5. AUTO LIVE SYNC (With Smart Color Logic)
+        // ==============================================================================
+        function refreshDashboardData() {
+            fetch('/admin/api/products')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(p => {
+                        // 1. Update Stock Quantity Text
+                        const qtyCell = document.getElementById(`qty-${p.id}`);
+                        if (qtyCell) {
+                            qtyCell.innerText = `${p.available_qty} units`;
+                        }
+
+                        // 2. Update Status Badge Color and Text
+                        const badge = document.getElementById(`status-${p.id}`);
+                        if (badge) {
+                            // THE FIX: Explicitly set red (bg-danger) if quantity is 0
+                            if (p.available_qty <= 0 || p.status === 'Out of Stock') {
+                                badge.innerText = 'Out of Stock';
+                                badge.className = 'badge bg-danger';
+                            } else {
+                                badge.innerText = p.status;
+                                badge.className = 'badge bg-success';
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.log("Background sync paused:", err));
+        }
+
+        // Run the background check every 3 seconds for real-time feel
+        setInterval(refreshDashboardData, 3000);
 
     </script>
 </body>
