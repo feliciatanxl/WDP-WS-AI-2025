@@ -40,8 +40,8 @@ def seed_data():
 
         # --- 3. SEED YOURSELF AS CUSTOMER ---
         # IMPORTANT: Use the exact phone number you use for WhatsApp (with country code)
-        your_phone = "65XXXXXXXX" # <-- CHANGE THIS to your WhatsApp number
-        your_name = "Admin Tester"
+        your_phone = "6591540822" # <-- CHANGE THIS to your WhatsApp number
+        your_name = "Felicia"
 
         existing_c = Customer.query.filter_by(phone=your_phone).first()
         if not existing_c:
@@ -49,7 +49,7 @@ def seed_data():
                 name=your_name,
                 phone=your_phone,
                 email="test@example.com",
-                leader_id=test_leader.id  # Links you to the leader
+                leader_id=test_leader.id  
             )
             db.session.add(new_customer)
             print(f"👤 Added {your_name} as a registered customer.")

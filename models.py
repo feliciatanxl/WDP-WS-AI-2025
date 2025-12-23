@@ -69,6 +69,7 @@ class Customer(db.Model):
 class GroupLeader(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=True) 
     area = db.Column(db.String(100)) 
     members = db.relationship('Customer', backref='leader', lazy=True)
     leader_orders = db.relationship('WhatsAppOrder', backref='handling_leader', lazy=True)

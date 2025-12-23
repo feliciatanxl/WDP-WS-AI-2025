@@ -93,6 +93,9 @@ def create_app():
     @app.route('/review')
     def review(): return render_template('review.html')
 
+    @app.route('/leader')
+    def leader(): return render_template('leader.html')
+
     # Create Tables
     with app.app_context():
         db.create_all()

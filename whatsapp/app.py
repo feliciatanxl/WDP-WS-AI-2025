@@ -1,26 +1,25 @@
 # ==============================================================================
-# 0. PATH FIX (Adds root directory so it can find models.py)
+# 0. PATH FIXED
 # ==============================================================================
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # ==============================================================================
-# 1. Standard Imports
+# 1. Standard Imports FIXED
 # ==============================================================================
 import requests
 import re
+import io
 from datetime import datetime
 from flask import Flask, request, jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
 import pytz
-
-# Import all models
 from models import db, ContactInquiry, Product, Customer, WhatsAppOrder, WhatsAppLead, StockAlert
 
 # ==============================================================================
-# 2. Configuration & Security
+# 2. Configuration & Security FIXED
 # ==============================================================================
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env')) 
 
@@ -46,14 +45,11 @@ except Exception:
     client = None
 
 # ==============================================================================
-# 3. Database Helper Logic (CRUD & STOCK GUARD)
+# 3. Database Helper Logic
 # ==============================================================================
 def get_inventory_string():
-    """Retrieves stock and explicitly marks items as SOLD OUT for the AI."""
     products = Product.query.all()
-    if not products:
-        return "No stock data available."
-    
+    if not products: return "No stock data available."
     output = "CURRENT FARM INVENTORY:\n"
     for p in products:
         status = "AVAILABLE" if p.available_qty > 0 else "SOLD OUT"
@@ -69,26 +65,29 @@ def deduct_stock_db(product_name, qty_to_deduct):
     return False
 
 # ==============================================================================
-# 4. New Prospect Handling (STRICT DATA COLLECTION & SG TIME)
+# 4. New Prospect Handling (UPDATED: Data Summary & Leader Assignment) FIXED
 # ==============================================================================
 def handle_new_prospect(customer_number, customer_message, history):
-    # Get current SG time to inform the AI context
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%Y-%m-%d %H:%M:%S")
 
+    # REFINED PROMPT: Removes redundant instructions to prevent duplicate text
     system_prompt = f"""
-    You are 'Leaf Plant Onboarding AI'. Current SG Time: {sg_now}.
+    You are 'Leaf Plant Onboarding AI'. Time: {sg_now}.
     
-    YOUR GOAL: You MUST collect both the user's NAME and their NEIGHBORHOOD.
+    GOAL: Securely collect the user's NAME and NEIGHBORHOOD.
     
-    STRICT RULES:
-    1. If name is missing, ask for it. 
-    2. If neighborhood is missing, ask for it (to find a local Group Leader).
-    3. DO NOT take orders yet. Explain that the Group Leader protects their privacy.
+    RESPONSE FORMAT:
+    1. Once you have both pieces of info, provide a SINGLE, clear confirmation.
+       Example: "Thank you, [Name]! I've noted that you are from [Neighborhood]."
     
-    EXTRACTION (At bottom of reply):
-    - Tag: [[NAME: Name]] (If provided)
-    - Tag: [[ADDRESS: Neighborhood]] (If provided)
+    2. Then, explain the next steps: "Our team will assign you to a local Group Buy Leader who will contact you to finalize your registration. This system ensures fresh delivery and protects your private data."
+    
+    STRICT DATA EXTRACTION:
+    At the very end of your message, you MUST include these exact tags for our database:
+    [[NAME: Name]]
+    [[ADDRESS: Neighborhood]]
     """
+    
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
     messages.append({"role": "user", "content": customer_message})
@@ -97,12 +96,12 @@ def handle_new_prospect(customer_number, customer_message, history):
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
+        # 1. Database Extraction Logic
         address_match = re.search(r"\[\[ADDRESS:\s*(.*?)\]\]", ai_reply)
         name_match = re.search(r"\[\[NAME:\s*(.*?)\]\]", ai_reply)
         
         if address_match or name_match:
             existing_lead = WhatsAppLead.query.filter_by(phone=customer_number).first()
-            
             if not existing_lead:
                 new_lead = WhatsAppLead(
                     phone=customer_number,
@@ -114,60 +113,54 @@ def handle_new_prospect(customer_number, customer_message, history):
             else:
                 if address_match: existing_lead.neighborhood = address_match.group(1).strip()
                 if name_match: existing_lead.extracted_name = name_match.group(1).strip()
-                
-                # Check if lead is now complete
                 if existing_lead.neighborhood != "Pending" and existing_lead.extracted_name != "New Prospect":
                     existing_lead.status = 'Awaiting Assignment'
-            
             db.session.commit()
-            print(f"🔥 [SG TIME SYNC] Lead progress saved at {sg_now}")
 
-        clean_reply = re.sub(r"\[\[ADDRESS:.*?\]\]", "", ai_reply)
-        clean_reply = re.sub(r"\[\[NAME:.*?\]\]", "", clean_reply)
-        return clean_reply.strip()
+        # 2. CLEANING LOGIC: This stops the customer from seeing the "Tags" or duplicate info
+        # We strip out everything starting from the first double bracket [[
+        clean_reply = ai_reply.split('[[')[0].strip()
+        
+        # Final safety check: if the AI added bullet points like in your screenshot, remove them
+        clean_reply = clean_reply.replace('· Tag:', '').replace('• Tag:', '').strip()
+        
+        return clean_reply
 
     except Exception as e:
         db.session.rollback()
         return "Welcome! May I have your name and neighborhood to link you with a local leader?"
 
 # ==============================================================================
-# 5. AI Sales Engine (PROACTIVE & MULTI-LANGUAGE)
+# 5. AI Sales Engine 
 # ==============================================================================
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."
-    
     stock_list = get_inventory_string()
+    
+    # Retrieve Leader details from the database
     leader_name = customer_obj.leader.name if customer_obj.leader else "your local leader"
+    leader_phone = customer_obj.leader.phone if customer_obj.leader else "our main line"
+    
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%A, %d %B %Y")
 
-    # IMPROVED SYSTEM PROMPT: Fixes Language Drift and Context Loss
     system_prompt = f"""
     You are 'Farm Sales AI'. Today is {sg_now}. 
-    Customer: {customer_obj.name}. Assigned Leader: {leader_name}.
+    Customer: {customer_obj.name}. Leader: {leader_name}.
     
-    STRICT BUSINESS RULES:
-    1. LANGUAGE CONSISTENCY: Respond ONLY in English or the customer's last used language. 
-       NEVER switch to French or other languages randomly.
-    
-    2. CONTEXT AWARENESS (RESTOCK ALERTS): 
-       - If the conversation history shows a "Back in Stock" notification was just sent,
-         assume the user's "Yes" refers to that specific product (e.g., Mizuna).
-       - Immediately ask: "Great! How many boxes of [Product Name] would you like?"
+    DELIVERY PROTOCOL:
+    - You MUST inform the customer that their delivery is managed by their Group Buy Leader, {leader_name}.
+    - Provide the Leader's contact number: {leader_phone} for any questions.
+    - Explain that the farm only sees bulk order totals to protect customer privacy.
 
-    3. PRODUCT NAME PERSISTENCE: 
-       - NEVER use generic terms like "the chosen item" or "the product." 
-       - Always use the specific name (e.g., "Mizuna", "Xiao Bai Cai").
-
-    4. PRIVACY: Particulars stay with {leader_name} and are not shared with the farm.
-    5. INVENTORY & PRICING: {stock_list}. Apply 10% Member Discount.
-    
-    6. DOUBLE CONFIRMATION FLOW:
-       - STEP 1: Calculate total (Member Price) and ASK for confirmation.
-         DO NOT show the math formula. Just state: "That will be $11.25 for 5 boxes of Mizuna."
-       - STEP 2: ONLY IF they say "Yes", provide the internal tag [[DATA: Item Name | Quantity | MemberTotalPrice]].
+    RULES:
+    1. LANGUAGE: Match the user's language exactly.
+    2. CONTEXT: If they say "Yes" to a restock alert, assume they mean that item.
+    3. NO GENERIC TERMS: Always use specific names (e.g., "Mizuna").
+    4. DELIVERY: All confirmed orders are for NEXT-DAY delivery.
+    5. INVENTORY: {stock_list}. Member gets 10% discount.
+    6. CONFIRMATION: Ask for quantity -> Show Total -> Wait for "Yes" -> Tag [[DATA: Item | Qty | Total]].
     """
 
-    # Maintain History (Last 5 messages for context memory)
     if customer_number not in conversation_history: conversation_history[customer_number] = []
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation_history[customer_number][-5:])
@@ -177,88 +170,91 @@ def get_openai_response(customer_message, customer_number, customer_obj):
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        # --- STOCK ALERT TRACKING ---
-        if "sold out" in ai_reply.lower() or "alert" in ai_reply.lower():
-            for p in Product.query.all():
-                if p.name.lower() in customer_message.lower():
-                    new_alert = StockAlert(customer_phone=customer_number, product_name=p.name)
-                    db.session.add(new_alert)
-                    db.session.commit()
-
-        # --- ORDER PROCESSING (Wait for "Yes" Confirmation) ---
+        # --- ORDER PROCESSING (Safety Guard) ---
         data_match = re.search(r"\[\[DATA:\s*(.*?)\s*\]\]", ai_reply)
         if data_match:
-            raw_data = data_match.group(1)
-            parts = [p.strip() for p in raw_data.split('|')]
+            parts = [p.strip() for p in data_match.group(1).split('|')]
             if len(parts) == 3:
-                item_name, qty_str, price_str = parts[0], parts[1], parts[2]
-                qty = int(re.sub(r'[^\d]', '', qty_str))
-                total_cost = float(re.sub(r'[^\d.]', '', price_str))
+                item_name = parts[0]
+                qty_str = re.sub(r'[^\d]', '', parts[1])
+                
+                if not qty_str:
+                    return re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
+
+                qty = int(qty_str)
+                total_cost = float(re.sub(r'[^\d.]', '', parts[2]))
                 
                 if deduct_stock_db(item_name, qty):
-                    commission = total_cost * 0.111 
                     new_order = WhatsAppOrder(
-                        customer_id=customer_obj.id, leader_id=customer_obj.leader_id,
-                        customer_phone=customer_number, product_name=item_name,
-                        quantity=qty, total_price=total_cost,
-                        commission_earned=commission, order_status='Confirmed'
+                        customer_id=customer_obj.id, 
+                        leader_id=customer_obj.leader_id,
+                        customer_phone=customer_number, 
+                        product_name=item_name,
+                        quantity=qty, 
+                        total_price=total_cost,
+                        commission_earned=total_cost * 0.111, 
+                        order_status='Confirmed'
                     )
                     db.session.add(new_order)
                     db.session.commit()
                     
+                    # Updated Secured message with Leader Contact
                     clean_reply = re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
-                    return f"{clean_reply}\n\n✅ *ORDER SECURED*\n{qty}x {item_name} confirmed! {leader_name} will manage your delivery."
+                    return (f"{clean_reply}\n\n"
+                            f"✅ *ORDER SECURED*\n"
+                            f"{qty}x {item_name} confirmed for next-day delivery!\n\n"
+                            f"🚜 *Logistics Note*: Your Group Buy Leader, *{leader_name}*, will prepare your delivery. "
+                            f"Contact them at *{leader_phone}* if you have questions.")
 
         return re.sub(r"\[\[DATA:.*?\]\]", "", ai_reply).strip()
-
     except Exception as e:
-        db.session.rollback()
-        print(f"DEBUG ERROR: {e}") 
-        return "I'm having a bit of trouble connecting to the farm. Please try again in a moment!"
-    
+        print(f"DEBUG ERROR: {e}")
+        return "I'm having trouble connecting. Try again later!"
+
 # ==============================================================================
-# 6. Webhook Handling (THE GATEKEEPER)
+# 6. Webhook Handling (The Gatekeeper)
 # ==============================================================================
 @app.route('/webhook', methods=['POST'])
 def handle_message():
     data = request.get_json()
+    value = data.get('entry', [{}])[0].get('changes', [{}])[0].get('value', {})
+    
+    if 'messages' not in value:
+        return jsonify({"status": "ignored"}), 200
+
     try:
-        # 1. Extract message details
-        msg = data['entry'][0]['changes'][0]['value']['messages'][0]
-        customer_number, msg_id, customer_message = msg['from'], msg['id'], msg['text']['body']
-        
-        # 2. Duplicate Check: This stops the bot from replying twice to the same ID
-        if msg_id in processed_messages: 
-            return jsonify({"status": "duplicate"}), 200
+        msg = value['messages'][0]
+        customer_number, msg_id = msg['from'], msg['id']
+        if msg.get('type') != 'text': return jsonify({"status": "non_text"}), 200
+        customer_message = msg['text']['body']
+
+        if msg_id in processed_messages: return jsonify({"status": "duplicate"}), 200
         processed_messages.add(msg_id) 
 
-        # 3. Authentication & Response Generation
         customer = Customer.query.filter_by(phone=customer_number).first()
-        if customer:
-            reply = get_openai_response(customer_message, customer_number, customer)
-        else:
-            history = conversation_history.get(customer_number, [])[-4:]
-            reply = handle_new_prospect(customer_number, customer_message, history)
+        reply = get_openai_response(customer_message, customer_number, customer) if customer else handle_new_prospect(customer_number, customer_message, conversation_history.get(customer_number, [])[-4:])
 
-        # 4. Save History
         if customer_number not in conversation_history: conversation_history[customer_number] = []
         conversation_history[customer_number].append({"role": "user", "content": customer_message})
         conversation_history[customer_number].append({"role": "assistant", "content": reply})
 
-        # 5. Send Response back to WhatsApp
         requests.post(f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages", 
                      headers={"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}"},
                      json={"messaging_product": "whatsapp", "to": customer_number, "type": "text", "text": {"body": reply}})
         
-        # 6. IMMEDIATELY tell Meta to stop retrying
-        return jsonify({"status": "ok"}), 200
-
+        return jsonify({"status": "ok"}), 200 
     except Exception as e:
         print(f"WEBHOOK ERROR: {e}")
-        # Even on error, return 200 so Meta stops retrying the 'broken' message
-        return jsonify({"status": "error_logged"}), 200
-    
+        return jsonify({"status": "error_handled"}), 200
+
+# ==============================================================================
+# 7. MAIN EXECUTION BLOCK
+# ==============================================================================
 if __name__ == '__main__':
     with app.app_context():
+        print("🔧 Initializing Database and Tables...")
         db.create_all() 
+    
+    print("🚀 Farm WhatsApp Bot is starting on Port 5000...")
+    print("📡 Press CTRL+C to stop the server.")
     app.run(port=5000, debug=True)
