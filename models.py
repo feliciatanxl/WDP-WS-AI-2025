@@ -1,12 +1,25 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
 from datetime import datetime
 import pytz
 
 db = SQLAlchemy()
 
-# Helper function to ensure everything is recorded in Singapore Time
+# Helper function for Singapore Time
 def get_sg_time():
     return datetime.now(pytz.timezone('Asia/Singapore'))
+
+# ==============================================================================
+# SQLITE CONFIGURATION (Single File Mode)
+# ==============================================================================
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    # Removed WAL mode. Using standard delete mode (standard .db file only)
+    cursor.execute("PRAGMA journal_mode=DELETE")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    # CRITICAL: This prevents "Database is Locked" errors by waiting up to 30s
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.close()
 
 # ==============================================================================
 # 1. WEBSITE DATA: Customer Service (Web Form)
@@ -18,7 +31,6 @@ class ContactInquiry(db.Model):
     phone = db.Column(db.String(20))
     message = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='Pending') 
-    # UPDATED: Now uses SG Time for website audit
     created_at = db.Column(db.DateTime, default=get_sg_time)
 
 # ==============================================================================
@@ -26,11 +38,9 @@ class ContactInquiry(db.Model):
 # ==============================================================================
 class WhatsAppOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # --- LINKS ---
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     leader_id = db.Column(db.Integer, db.ForeignKey('group_leader.id'))
     
-    # --- DATA ---
     customer_phone = db.Column(db.String(20), nullable=False)
     product_name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
@@ -43,7 +53,7 @@ class WhatsAppLead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     phone = db.Column(db.String(20), unique=True, nullable=False)
     extracted_name = db.Column(db.String(100)) 
-    neighborhood = db.Column(db.String(100))    
+    neighborhood = db.Column(db.String(100))     
     status = db.Column(db.String(50), default='Awaiting Assignment')
     created_at = db.Column(db.DateTime, default=get_sg_time)
 
@@ -80,4 +90,5 @@ class StockAlert(db.Model):
     customer_phone = db.Column(db.String(20), nullable=False)
     product_name = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=get_sg_time) 
-    is_notified = db.Column(db.Boolean, default=False)
+    is_notified = db.Column(db.Boolean, default=False, nullable=False)
+    notified_at = db.Column(db.DateTime, nullable=True)

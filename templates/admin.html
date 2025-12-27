@@ -241,8 +241,8 @@
                                                                 </div>
                                                             </div>
                                                             <div class="mb-3">
-                                                                    <label class="fw-bold text-muted small text-uppercase">Full Message</label>
-                                                                    <div class="p-3 bg-light rounded border">{{ inquiry.message }}</div>
+                                                                <label class="fw-bold text-muted small text-uppercase">Full Message</label>
+                                                                <div class="p-3 bg-light rounded border">{{ inquiry.message }}</div>
                                                             </div>
                                                         </div>
                                                         <div class="modal-footer">
@@ -581,6 +581,7 @@
                 .then(response => response.json())
                 .then(data => {
                     data.forEach(p => {
+                        // 1. Update the Main Table Display
                         const qtyCell = document.getElementById(`qty-${p.id}`);
                         if (qtyCell) {
                             qtyCell.innerText = `${p.available_qty} units`;
@@ -594,6 +595,24 @@
                             } else {
                                 badge.innerText = p.status;
                                 badge.className = 'badge bg-success';
+                            }
+                        }
+
+                        // 2. LIVE SYNC THE EDIT MODAL FORM FIELDS
+                        // This ensures when you click 'Edit', the numbers match the DB
+                        const editModal = document.querySelector(`#editModal${p.id}`);
+                        if (editModal) {
+                            const stockInput = editModal.querySelector('input[name="stock"]');
+                            const statusSelect = editModal.querySelector('select[name="status"]');
+                            
+                            // Only update if the Admin isn't currently typing in this specific box
+                            if (stockInput && document.activeElement !== stockInput) {
+                                stockInput.value = p.available_qty;
+                            }
+                            
+                            // Update status dropdown if Admin isn't interacting with it
+                            if (statusSelect && document.activeElement !== statusSelect) {
+                                statusSelect.value = p.status;
                             }
                         }
                     });

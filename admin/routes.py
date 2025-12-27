@@ -78,7 +78,7 @@ def add_product():
 
     return redirect(url_for('admin.dashboard') + '#products')
 
-# 3. EDIT PRODUCT (With Full Two-Way Sync)
+# 3. EDIT PRODUCT (With Smart Auto-Status Logic)
 @admin_bp.route("/admin/products/edit/<int:id>", methods=['POST'])
 def edit_product(id):
     product = Product.query.get_or_404(id)
@@ -86,7 +86,7 @@ def edit_product(id):
     try:
         # 1. Get data from form
         new_qty = int(request.form.get('stock', 0))
-        new_status = request.form.get('status')  # Capture the dropdown value
+        new_status = request.form.get('status')
         
         product.name = request.form.get('name')
         product.available_qty = new_qty
@@ -94,19 +94,26 @@ def edit_product(id):
         product.category = request.form.get('category')
         product.image_file = request.form.get('image_file')
 
-        # 2. Handle Status Logic (Manual Override)
-        # We prioritize the admin's manual selection from the dropdown
-        product.status = new_status
-
-        # 3. Safety Check: If qty is 0, force OOS regardless of dropdown to prevent sales errors
+        # 2. Smart Status Logic
+        # If quantity is 0, it MUST be Out of Stock
         if new_qty <= 0:
             product.status = "Out of Stock"
+        
+        # If quantity is > 0 and the previous state was OOS, 
+        # auto-flip it to "In Stock" regardless of the dropdown
+        # (This handles the case where an admin adds stock but forgets the dropdown)
+        elif new_qty > 0 and product.status == "Out of Stock":
+            product.status = "In Stock"
+        
+        # Otherwise, respect the manual dropdown choice (e.g., admin wants it OOS for maintenance)
+        else:
+            product.status = new_status
 
-        # Mark modified ensures SQLAlchemy pushes the change to leafplant.db
+        # 3. Mark modified and save
         flag_modified(product, "status")
         db.session.commit()
         
-        print(f"✅ DB Updated ID {id}: {product.name} is now {product.status}")
+        print(f"✅ DB Updated ID {id}: {product.name} | Qty: {new_qty} | Status: {product.status}")
         
     except Exception as e:
         db.session.rollback()
