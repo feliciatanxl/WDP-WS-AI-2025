@@ -44,6 +44,7 @@ def add_product():
     stock = int(request.form.get('stock', 0))
     price = float(request.form.get('price', 0.0))
     image_file = request.form.get('image_file', 'default.png')
+    category = request.form.get('category')
 
     # AUTO-STATUS LOGIC: Prevents "0 units | In Stock"
     status = "In Stock" if stock > 0 else "Out of Stock"
@@ -53,7 +54,8 @@ def add_product():
         available_qty=stock,
         price=price,
         status=status,
-        image_file=image_file
+        image_file=image_file,
+        category=category
     )
     db.session.add(new_product)
     db.session.commit()
@@ -67,6 +69,7 @@ def update_stock_level():
     product_id = request.form.get('product_id')
     new_qty = int(request.form.get('stock', 0))
     manual_dropdown_status = request.form.get('status')
+    product.category = request.form.get('category') # Update it here
     
     # Use session.get for a clean, fresh fetch from the file
     product = db.session.get(Product, product_id)

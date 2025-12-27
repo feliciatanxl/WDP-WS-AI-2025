@@ -57,6 +57,7 @@ class Product(db.Model):
     available_qty = db.Column(db.Integer, default=0)
     status = db.Column(db.String(50), default='In Stock')
     image_file = db.Column(db.String(100), nullable=False, default='default_product.jpg')
+    category = db.Column(db.String(50), nullable=False, default='leafy')
 
 class Customer(db.Model):
     id = db.Column(db.Integer, primary_key=True)

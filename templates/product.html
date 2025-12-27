@@ -49,112 +49,51 @@
     <main class="container main-content-offset pt-5">
         <div class="row">
 
-            <div class="col-md-3">
-                <h6 class="fw-bold mb-2">SEARCH PRODUCTS:</h6>
-                <div class="search-box mb-4">
-                    <input type="text" id="search" placeholder="Search products...">
-                    <i class="bi bi-search"></i>
-                </div>
-
-                <h6 class="fw-bold mb-2">PRODUCT CATEGORIES</h6>
-                <ul class="product-category-list">
-                    <li><a href="#" data-category="all">All</a></li>
-                    <li><a href="#" data-category="leafy">Leafy Greens</a></li>
-                    <li><a href="#" data-category="lettuce">Lettuce</a></li>
-                    <li><a href="#" data-category="chinese">Chinese Vegetables</a></li>
-                </ul>
+           <div class="container-fluid mt-4 px-4">
+    <div class="row">
+        <div class="col-md-3 px-4"> 
+            <h6 class="fw-bold mb-3" style="letter-spacing: 1px;">SEARCH PRODUCTS:</h6>
+            <div class="search-box mb-4">
+                <input type="text" id="search" class="form-control rounded-pill" placeholder="Search products...">
             </div>
 
-            <div class="col-md-9">
-                <div class="row g-4">
-                    <div class="col-md-4 produce-item" data-id="1" data-category="leafy">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/mizuna.png') }}" alt="Mizuna">
-                            <div class="card-body">
-                                <h5>Mizuna</h5>
-                                <p>$2.50</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
+            <h6 class="fw-bold mb-3" style="letter-spacing: 1px;">PRODUCT CATEGORIES</h6>
+            <ul class="product-category-list list-unstyled">
+                <li class="mb-2"><a href="#" class="text-decoration-none text-dark" data-category="all">All</a></li>
+                <li class="mb-2"><a href="#" class="text-decoration-none text-dark" data-category="leafy">Leafy Greens</a></li>
+                <li class="mb-2"><a href="#" class="text-decoration-none text-dark" data-category="lettuce">Lettuce</a></li>
+                <li class="mb-2"><a href="#" class="text-decoration-none text-dark" data-category="chinese">Chinese Vegetables</a></li>
+            </ul>
+        </div>
 
-                    <div class="col-md-4 produce-item" data-id="2" data-category="lettuce">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/chrisgreenlettuce.jpg') }}" alt="Chris Green Lettuce">
-                            <div class="card-body">
-                                <h5>Chris Green Lettuce</h5>
-                                <p>$2.80</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
+        <div class="col-md-9">
+            <div class="row g-4">
+                {% for product in products %}
+                <div class="col-md-4 produce-item" data-category="{{ product.category|lower }}"> <div class="card h-100 shadow-sm border-0" style="border-radius: 15px;">
+                        
+                        <div style="height: 200px; display: flex; align-items: center; justify-content: center; padding: 15px;">
+                            <img src="{{ url_for('static', filename='image/' + product.image_file) }}" 
+                                 alt="{{ product.name }}"
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain;">
                         </div>
-                    </div>
+                        
+                        <div class="card-body text-center pt-0">
+                            <h5 class="fw-bold mb-1">{{ product.name }}</h5>
+                            <p class="text-success fw-bold mb-3">${{ "%.2f"|format(product.price) }}</p>
+                            
+                            <button class="view-detail-btn w-100 py-2" data-id="{{ product.id }}" style="border: 1.5px solid #333; background: white; border-radius: 25px; font-weight: 500;">
+                                View Details
+                            </button>
 
-                    <div class="col-md-4 produce-item" data-id="3" data-category="lettuce">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/lollo_bionda_lettuce.jpg') }}" alt="Lollo Bionda Lettuce">
-                            <div class="card-body">
-                                <h5>Lollo Bionda Lettuce</h5>
-                                <p>$3.20</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4 produce-item" data-id="4" data-category="lettuce">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/cos_lettuce.jpg') }}" alt="Cos Lettuce">
-                            <div class="card-body">
-                                <h5>Cos Lettuce</h5>
-                                <p>$3.00</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4 produce-item" data-id="5" data-category="chinese">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/red_pak_choy.jpg') }}" alt="Red Pak Choy">
-                            <div class="card-body">
-                                <h5>Red Pak Choy</h5>
-                                <p>$4.20</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4 produce-item" data-id="6" data-category="chinese">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/xiaobaicai.jpg') }}" alt="Xiao Bai Cai">
-                            <div class="card-body">
-                                <h5>Xiao Bai Cai</h5>
-                                <p>$2.80</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4 produce-item" data-id="7" data-category="chinese">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/jiubaicai.jpg') }}" alt="Jiu Bai Cai">
-                            <div class="card-body">
-                                <h5>Jiu Bai Cai</h5>
-                                <p>$3.30</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4 produce-item" data-id="8" data-category="chinese">
-                        <div class="card shadow-sm">
-                            <img src="{{ url_for('static', filename='image/maobai.jpg') }}" alt="Mao Bai">
-                            <div class="card-body">
-                                <h5>Mao Bai</h5>
-                                <p>$3.40</p>
-                                <button class="view-detail-btn">View Details</button>
-                            </div>
+<p id="stock-val-{{ product.id }}" class="d-none">{{ product.available_qty }}</p>
                         </div>
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
             </div>
         </div>
     </main>
@@ -178,6 +117,7 @@
             </div>
         </div>
     </div>
+    
 
     <a class="whatsapp-float-button" href="https://wa.me/6580262125" target="_blank" title="Chat with AI Agent">
         <i class="bi bi-whatsapp"></i>
@@ -210,139 +150,188 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
 
-            function updateAccountLink() {
-                const accountLink = document.getElementById("accountLink");
-                if (accountLink) {
-                    const userRole = localStorage.getItem('userRole');
-                    // Logic updated: Role check only, no login validation required
-                    if (userRole === 'admin') {
-                        accountLink.textContent = 'Admin Panel';
-                        accountLink.href = '/admin/dashboard';
-                    } else if (userRole === 'user') {
-                        accountLink.textContent = 'User Dashboard';
-                        accountLink.href = '/account';
-                    } else {
-                        accountLink.textContent = 'Account';
-                        accountLink.href = '/account';
-                    }
+        // --- 1. Account Link Logic ---
+        function updateAccountLink() {
+            const accountLink = document.getElementById("accountLink");
+            if (accountLink) {
+                const userRole = localStorage.getItem('userRole');
+                if (userRole === 'admin') {
+                    accountLink.textContent = 'Admin Panel';
+                    accountLink.href = '/admin/dashboard';
+                } else if (userRole === 'user') {
+                    accountLink.textContent = 'User Dashboard';
+                    accountLink.href = '/account';
+                } else {
+                    accountLink.textContent = 'Account';
+                    accountLink.href = '/account';
                 }
             }
-            updateAccountLink();
+        }
+        updateAccountLink();
 
-            const produceItems = document.querySelectorAll('.produce-item');
-            const modal = document.getElementById('product-detail');
-            const closeBtn = document.getElementById('close-detail');
-            const nameEl = document.getElementById('detail-name');
-            const priceEl = document.getElementById('detail-price');
-            const descEl = document.getElementById('detail-description');
-            const qtyEl = document.getElementById('qty-number');
-            const addToCartBtn = document.querySelector('.add-cart-btn');
-            const stockText = document.getElementById("detail-stock");
+        // --- 2. Element Selectors ---
+        const produceItems = document.querySelectorAll('.produce-item');
+        const modal = document.getElementById('product-detail');
+        const closeBtn = document.getElementById('close-detail');
+        const nameEl = document.getElementById('detail-name');
+        const priceEl = document.getElementById('detail-price');
+        const descEl = document.getElementById('detail-description');
+        const qtyEl = document.getElementById('qty-number');
+        const addToCartBtn = document.querySelector('.add-cart-btn');
+        const stockText = document.getElementById("detail-stock");
 
-            let currentProductId = null;
-            let currentQty = 1;
+        let currentProductId = null;
+        let currentQty = 1;
 
-            const products = {
-                1: { name: "Mizuna", price: "$2.50", stock: 0, description: ["A crisp, peppery Japanese leafy green.", "Perfect for salads and garnishes."] },
-                2: { name: "Chris Green Lettuce", price: "$2.80", stock: 10, description: ["A vibrant, tender lettuce variety.", "Sweet and crunchy."] },
-                3: { name: "Lollo Bionda Lettuce", price: "$3.20", stock: 15, description: ["Visually striking with frilly leaves.", "Adds volume to salads."] },
-                4: { name: "Cos Lettuce", price: "$3.00", stock: 12, description: ["A crisp, upright lettuce variety.", "The classic choice for Caesar salad."] },
-                5: { name: "Red Pak Choy", price: "$4.20", stock: 8, description: ["A vibrant Asian leafy green.", "Great for stir-fries."] },
-                6: { name: "Xiao Bai Cai", price: "$2.80", stock: 25, description: ["Small, tender bok choy variety.", "Cooks quickly and tastes sweet."] },
-                7: { name: "Jiu Bai Cai", price: "$3.30", stock: 18, description: ["Hardy, fast-growing vegetable.", "Versatile for soups and stir-fry."] },
-                8: { name: "Mao Bai", price: "$3.40", stock: 14, description: ["Traditional leafy cabbage variety.", "Soft texture and mild flavor."] }
-            };
+        // --- 3. View Details (Event Delegation) ---
+        document.addEventListener('click', function (event) {
+            if (event.target.classList.contains('view-detail-btn')) {
+                const btn = event.target;
+                const item = btn.closest('.produce-item');
+                
+                // Get Data from the HTML
+                const id = btn.dataset.id;
+                const name = item.querySelector('h5').textContent;
+                const price = item.querySelector('.text-success').textContent;
+                
+                // Get stock from the hidden p tag (Ensure this tag exists in your HTML)
+                const stockTag = document.getElementById('stock-val-' + id);
+                const stockValue = stockTag ? parseInt(stockTag.textContent) : 0;
 
-            produceItems.forEach(item => {
-                item.querySelector('.view-detail-btn').addEventListener('click', () => {
-                    const id = item.dataset.id;
-                    currentProductId = parseInt(id);
-                    const product = products[id];
-                    nameEl.textContent = product.name;
-                    priceEl.textContent = product.price;
-                    descEl.innerHTML = "";
-                    product.description.forEach(line => {
-                        const li = document.createElement("li");
-                        li.textContent = line;
-                        descEl.appendChild(li);
-                    });
-                    currentQty = 1;
-                    qtyEl.textContent = currentQty;
+                // Update Modal Elements
+                currentProductId = id;
+                nameEl.textContent = name;
+                priceEl.textContent = price;
+                
+                // Placeholder description (You can expand this later)
+                descEl.innerHTML = "<li>Freshly harvested.</li><li>High-quality organic produce.</li>"; 
+
+                currentQty = 1;
+                qtyEl.textContent = currentQty;
+
+                // Update UI based on Stock
+                if (stockValue > 0) {
+                    stockText.textContent = "Available stock: " + stockValue;
+                    stockText.className = "text-muted";
                     addToCartBtn.textContent = "Add To Cart";
-                    addToCartBtn.classList.replace('btn-dark', 'btn-success');
                     addToCartBtn.disabled = false;
-                    if (product.stock > 0) {
-                        stockText.textContent = "Available stock: " + product.stock;
-                        stockText.className = "text-muted";
-                    } else {
-                        stockText.textContent = "Out of Stock";
-                        stockText.className = "text-danger";
-                        addToCartBtn.disabled = true;
-                        addToCartBtn.textContent = "Sold Out";
-                    }
-                    modal.classList.add("active");
-                });
-            });
-
-            closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-
-            document.getElementById("qty-minus").addEventListener("click", () => {
-                if (currentQty > 1) { currentQty--; qtyEl.textContent = currentQty; }
-            });
-
-            document.getElementById("qty-plus").addEventListener("click", () => {
-                if (!currentProductId) return;
-                if (currentQty < products[currentProductId].stock) {
-                    currentQty++; qtyEl.textContent = currentQty;
-                }
-            });
-
-            addToCartBtn.addEventListener('click', () => {
-                if (!currentProductId) return;
-                const product = products[currentProductId];
-                let cart = JSON.parse(localStorage.getItem("farmCart")) || [];
-                let existingItemIndex = cart.findIndex(item => item.id === currentProductId);
-                if (existingItemIndex !== -1) {
-                    let newTotalQty = cart[existingItemIndex].qty + currentQty;
-                    if (newTotalQty > product.stock) {
-                        alert(`You already have ${cart[existingItemIndex].qty} in your cart. Max stock is ${product.stock}.`);
-                        return;
-                    }
-                    cart[existingItemIndex].qty = newTotalQty;
                 } else {
-                    cart.push({ id: currentProductId, name: product.name, price: product.price, qty: currentQty });
+                    stockText.textContent = "Out of Stock";
+                    stockText.className = "text-danger";
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.textContent = "Sold Out";
                 }
-                localStorage.setItem("farmCart", JSON.stringify(cart));
-                addToCartBtn.textContent = "Added!";
-                setTimeout(() => { window.location.href = "/orders"; }, 400);
-            });
 
-            const scrollTopBtn = document.getElementById("scrollTopBtn");
-            window.onscroll = () => { scrollTopBtn.style.display = (window.scrollY > 200) ? "block" : "none"; };
-            scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
-
-            document.getElementById("search").addEventListener("keyup", function () {
-                const text = this.value.toLowerCase();
-                produceItems.forEach(item => {
-                    const name = item.querySelector("h5").innerText.toLowerCase();
-                    item.style.display = name.includes(text) ? "" : "none";
-                });
-            });
-
-            document.querySelectorAll(".product-category-list a").forEach(link => {
-                link.addEventListener("click", e => {
-                    e.preventDefault();
-                    const cat = link.dataset.category;
-                    produceItems.forEach(item => {
-                        item.style.display = (cat === "all" || item.dataset.category === cat) ? "" : "none";
-                    });
-                });
-            });
+                modal.classList.add("active");
+            }
         });
-    </script>
+
+        // Close Modal
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+        window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+
+        // --- 4. Quantity Logic ---
+        document.getElementById("qty-minus").addEventListener("click", () => {
+            if (currentQty > 1) { 
+                currentQty--; 
+                qtyEl.textContent = currentQty; 
+            }
+        });
+
+        document.getElementById("qty-plus").addEventListener("click", () => {
+            if (!currentProductId) return;
+            // Get current max stock from the hidden tag
+            const stockTag = document.getElementById('stock-val-' + currentProductId);
+            const maxStock = stockTag ? parseInt(stockTag.textContent) : 0;
+
+            if (currentQty < maxStock) {
+                currentQty++; 
+                qtyEl.textContent = currentQty;
+            }
+        });
+
+        // --- 5. Add to Cart Logic ---
+        addToCartBtn.addEventListener('click', () => {
+            if (!currentProductId) return;
+            
+            const stockTag = document.getElementById('stock-val-' + currentProductId);
+            const maxStock = stockTag ? parseInt(stockTag.textContent) : 0;
+
+            let cart = JSON.parse(localStorage.getItem("farmCart")) || [];
+            let existingItemIndex = cart.findIndex(item => item.id === currentProductId);
+
+            if (existingItemIndex !== -1) {
+                let newTotalQty = cart[existingItemIndex].qty + currentQty;
+                if (newTotalQty > maxStock) {
+                    alert(`Sorry, you already have ${cart[existingItemIndex].qty} in your cart. Only ${maxStock} available.`);
+                    return;
+                }
+                cart[existingItemIndex].qty = newTotalQty;
+            } else {
+                cart.push({ 
+                    id: currentProductId, 
+                    name: nameEl.textContent, 
+                    price: priceEl.textContent, 
+                    qty: currentQty 
+                });
+            }
+
+            localStorage.setItem("farmCart", JSON.stringify(cart));
+            addToCartBtn.textContent = "Added!";
+            setTimeout(() => { window.location.href = "/orders"; }, 400);
+        });
+
+        // --- 6. Scroll, Search, and Filter ---
+        // --- 6. Scroll, Search, and Filter ---
+const scrollTopBtn = document.getElementById("scrollTopBtn");
+window.onscroll = () => { scrollTopBtn.style.display = (window.scrollY > 200) ? "block" : "none"; };
+scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+// Search Bar Logic
+const searchInput = document.getElementById("search");
+if (searchInput) {
+    searchInput.addEventListener("keyup", function () {
+        const text = this.value.toLowerCase();
+        
+        // Filter Cards
+        document.querySelectorAll('.produce-item').forEach(item => {
+            const name = item.querySelector("h5").innerText.toLowerCase();
+            item.style.display = name.includes(text) ? "" : "none";
+        });
+
+        // Filter Table Rows (Admin View)
+        document.querySelectorAll("tbody tr").forEach(row => {
+            const name = row.cells[2] ? row.cells[2].innerText.toLowerCase() : "";
+            row.style.display = name.includes(text) ? "" : "none";
+        });
+    });
+}
+
+// Category Sidebar Logic
+document.querySelectorAll(".product-category-list a").forEach(link => {
+    link.addEventListener("click", e => {
+        e.preventDefault();
+        const cat = link.dataset.category.toLowerCase();
+
+        // Filter Cards
+        document.querySelectorAll(".produce-item").forEach(item => {
+            const itemCat = item.getAttribute('data-category') || "";
+            item.style.display = (cat === "all" || itemCat === cat) ? "" : "none";
+        });
+
+        // Filter Table Rows
+        document.querySelectorAll("tbody tr").forEach(row => {
+            // Adjust the [3] to match whichever column your category is in!
+            const rowCat = row.cells[3] ? row.cells[3].innerText.toLowerCase() : "";
+            row.style.display = (cat === "all" || rowCat.includes(cat)) ? "" : "none";
+        });
+    });
+});
+});
+</script>
 </body>
 
 </html>

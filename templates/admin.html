@@ -286,149 +286,144 @@
                             </table>
                         </div>
                     </div>
-                    <div id="products" class="user-section">
-
+                  <div id="products" class="user-section">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="display-6 fw-bold text-success">Product Management</h1>
             <p class="text-muted">Manage your product catalogue, inventory, and pricing.</p>
         </div>
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
-    Add New Product
-</button>
+            Add New Product
+        </button>
     </div>
+
     <div class="modal fade" id="addProductModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="/admin/products/add" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Product</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Product Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="Add new products" required>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/admin/products/add#products" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Stock Quantity</label>
-                        <input type="number" name="stock" class="form-control" placeholder="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Price</label>
-                        <input type="number" step="0.01" name="price" class="form-control" placeholder="0.00" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Initial Status</label>
-                        <select name="status" class="form-select">
-                            <option value="In Stock">In Stock</option>
-                            <option value="Out of Stock">Out of Stock</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Image Link / Filename</label>
-                        <input type="text" name="image_file" class="form-control" placeholder="e.g. plant.png or URL">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Save Product</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-    <div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Image</th> <th>Name</th>
-                <th>Stock</th>
-                <th>Price</th>
-                <th>Status</th> <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in products %}
-            <tr>
-                <td>{{ product.id }}</td>
-                <td>
-                    <img src="{{ product.image_file }}" alt="Product" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
-                </td>
-                <td>{{ product.name }}</td>
-                <td id="qty-{{ product.id }}">{{ product.available_qty }} units</td>
-                <td>${{ "%.2f"|format(product.price) }}</td>
-                <td>
-                    <span id="status-{{ product.id }}" class="badge {% if product.status == 'In Stock' and product.available_qty > 0 %}bg-success{% else %}bg-danger{% endif %}">
-                        {% if product.available_qty > 0 %}{{ product.status }}{% else %}Out of Stock{% endif %}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ product.id }}">
-                        Edit
-                    </button>
-                    <a href="/admin/products/delete/{{ product.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this product?')">
-                        Delete
-                    </a>
-                </td>
-            </tr>
-
-            <div class="modal fade" id="editModal{{ product.id }}" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form action="/admin/update-stock-level" method="POST">
-                        
-                        <input type="hidden" name="product_id" value="{{ product.id }}">
-
-                        <div class="modal-header">
-                            <h5 class="modal-title">Edit Product: {{ product.name }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" name="name" class="form-control" placeholder="Product name" required>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Product Name</label>
-                                <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Stock Quantity</label>
-                                <input type="number" name="stock" class="form-control" value="{{ product.available_qty }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Price</label>
-                                <input type="number" step="0.01" name="price" class="form-control" value="{{ product.price }}" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
-                                    <option value="In Stock" {% if product.status == 'In Stock' %}selected{% endif %}>In Stock</option>
-                                    <option value="Out of Stock" {% if product.status == 'Out of Stock' %}selected{% endif %}>Out of Stock</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Image Link/Filename</label>
-                                <input type="text" name="image_file" class="form-control" value="{{ product.image_file }}">
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="form-select" required>
+                                <option value="" selected disabled>Choose a category...</option>
+                                <option value="leafy">Leafy Greens</option>
+                                <option value="lettuce">Lettuce</option>
+                                <option value="chinese">Chinese Vegetables</option>
+                            </select>
                         </div>
-                        <div class="modal-footer">
-                            <button type="submit" class="btn btn-primary">Save Changes & Notify Waiting Customers</button>
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" name="stock" class="form-control" placeholder="0" required>
                         </div>
-                    </form>
-                </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price</label>
+                            <input type="number" step="0.01" name="price" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Image Filename</label>
+                            <input type="text" name="image_file" class="form-control" placeholder="e.g. mizuna.png">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Product</button>
+                    </div>
+                </form>
             </div>
         </div>
-            {% endfor %}
-            
-            {% if not products %}
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">No products found.</td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
-</div>
+    </div>
 
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Category</th> <th>Stock</th>
+                    <th>Price</th>
+                    <th style="min-width: 150px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody> 
+                {% for product in products %} 
+                <tr>
+                    <td>{{ product.id }}</td>
+                    <td>
+                        <img src="{{ url_for('static', filename='image/' + product.image_file) }}" 
+                             style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #eee; border-radius: 5px;">
+                    </td>
+                    <td>{{ product.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ product.category|capitalize }}</span></td> <td>{{ product.available_qty }}</td>
+                    <td>${{ "%.2f"|format(product.price) }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ product.id }}">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <form action="{{ url_for('admin.delete_product', id=product.id) }}#products" method="POST" onsubmit="return confirm('Really delete {{ product.name }}?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+
+                <div class="modal fade" id="editModal{{ product.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="/admin/products/edit/{{ product.id }}#products" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit {{ product.name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Product Name</label>
+                                        <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Category</label>
+                                        <select name="category" class="form-select" required>
+                                            <option value="leafy" {% if product.category == 'leafy' %}selected{% endif %}>Leafy Greens</option>
+                                            <option value="lettuce" {% if product.category == 'lettuce' %}selected{% endif %}>Lettuce</option>
+                                            <option value="chinese" {% if product.category == 'chinese' %}selected{% endif %}>Chinese Vegetables</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stock Quantity</label>
+                                        <input type="number" name="stock" class="form-control" value="{{ product.available_qty }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price</label>
+                                        <input type="number" step="0.01" name="price" class="form-control" value="{{ product.price }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Image Filename</label>
+                                        <input type="text" name="image_file" class="form-control" value="{{ product.image_file }}">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Update Product</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
                     <div id="analytics" class="user-section"><h1>Analytics</h1></div>
                     <div id="settings" class="user-section"><h1>Settings</h1></div>

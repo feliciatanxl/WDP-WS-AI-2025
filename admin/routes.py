@@ -101,17 +101,21 @@ def edit_product(id):
     return redirect(url_for('admin.dashboard') + '#products')
 
 # Delete product
-@admin_bp.route("/admin/products/delete/<int:id>")
+# Change this line in your app.py / admin_bp file
+@admin_bp.route("/admin/products/delete/<int:id>", methods=['POST']) # Added methods=['POST']
 def delete_product(id):
     product = Product.query.get_or_404(id)
     try:
         db.session.delete(product)
         db.session.commit()
+        print(f"✅ SUCCESS: Deleted ID {id}")
     except Exception as e:
         db.session.rollback()
         print(f"❌ Delete Error: {e}")
     
     return redirect(url_for('admin.dashboard') + '#products')
+    
+
 
 # Inquiry Management
 @admin_bp.route('/admin/delete/<int:id>', methods=['POST'])

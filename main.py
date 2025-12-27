@@ -5,6 +5,7 @@ import pytz
 import requests
 from datetime import datetime
 from flask import Flask, send_from_directory, render_template, Response, request, redirect, url_for
+from models import Product 
 
 # Added missing imports for the leader route logic
 from models import db, WhatsAppOrder, GroupLeader, Product, StockAlert, Customer, WhatsAppLead 
@@ -78,6 +79,7 @@ def create_app():
             product.available_qty = new_qty
             product.price = float(request.form.get('price'))
             product.image_file = request.form.get('image_file')
+            product.category = request.form.get('category')
 
             if new_qty <= 0:
                 product.status = "Out of Stock"
@@ -170,7 +172,11 @@ def create_app():
     def about(): return render_template('about.html')
 
     @app.route('/product')
-    def product(): return render_template('product.html')
+    def product():
+    # Fetch all products from leafplant.db
+        all_products = Product.query.all() 
+    # Pass the list to the HTML as 'products'
+        return render_template('product.html', products=all_products)
 
     @app.route('/article')
     def article(): return render_template('article.html')
