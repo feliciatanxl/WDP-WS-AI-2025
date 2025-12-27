@@ -84,23 +84,29 @@ def edit_product(id):
     product = Product.query.get_or_404(id)
     
     try:
+        # 1. Get data from form
         new_qty = int(request.form.get('stock', 0))
+        new_status = request.form.get('status')  # Capture the dropdown value
+        
         product.name = request.form.get('name')
         product.available_qty = new_qty
         product.price = float(request.form.get('price', 0.0))
         product.category = request.form.get('category')
         product.image_file = request.form.get('image_file')
 
-        # Logic to auto-update status string based on qty
+        # 2. Handle Status Logic (Manual Override)
+        # We prioritize the admin's manual selection from the dropdown
+        product.status = new_status
+
+        # 3. Safety Check: If qty is 0, force OOS regardless of dropdown to prevent sales errors
         if new_qty <= 0:
             product.status = "Out of Stock"
-        else:
-            product.status = "In Stock"
 
-        # Mark modified ensures SQLAlchemy sees the change even if it's the same string
+        # Mark modified ensures SQLAlchemy pushes the change to leafplant.db
         flag_modified(product, "status")
         db.session.commit()
-        print(f"✅ DB Updated ID {id}: {product.status}")
+        
+        print(f"✅ DB Updated ID {id}: {product.name} is now {product.status}")
         
     except Exception as e:
         db.session.rollback()

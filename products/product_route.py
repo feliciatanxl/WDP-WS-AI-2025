@@ -64,39 +64,29 @@ def add_product():
 # ==============================================================================
 # 4. EDIT/UPDATE PRODUCT (Smart Sync Logic)
 # ==============================================================================
+# root/product_routes.py Logic check
 @app.route('/admin/update-stock-level', methods=['POST'])
 def update_stock_level():
     product_id = request.form.get('product_id')
     new_qty = int(request.form.get('stock', 0))
     manual_dropdown_status = request.form.get('status')
-    product.category = request.form.get('category') # Update it here
     
-    # Use session.get for a clean, fresh fetch from the file
     product = db.session.get(Product, product_id)
     
     if product:
-        # 1. Update the quantity number
         product.available_qty = new_qty
-        
-        # 2. FORCE THE STRING CHANGE
-        # This logic determines exactly what text will be saved in the DB column
+        # Capture Category correctly
+        product.category = request.form.get('category') 
+
+        # If quantity is 0, safety first: always Out of Stock
         if new_qty <= 0:
             product.status = "Out of Stock"
         else:
-            # If qty > 0, respect dropdown; otherwise default to 'In Stock'
-            product.status = manual_dropdown_status if manual_dropdown_status else "In Stock"
-        
-        try:
-            # 3. Mark the column as 'dirty' so SQLAlchemy forces a write to the disk
-            flag_modified(product, "status") 
-            db.session.add(product)
-            db.session.commit() # This command physically writes to leafplant.db
-            
-            print(f"✅ DB SYNC SUCCESS: {product.name} is now '{product.status}' in the database file.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ DB SYNC ERROR: {e}")
-            
+            # Respect the Admin's manual choice if quantity is > 0
+            product.status = manual_dropdown_status
+
+        flag_modified(product, "status")
+        db.session.commit()
     return redirect(url_for("admin_dashboard"))
 
 # ==============================================================================
