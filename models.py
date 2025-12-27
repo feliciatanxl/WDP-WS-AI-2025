@@ -79,5 +79,5 @@ class StockAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_phone = db.Column(db.String(20), nullable=False)
     product_name = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=get_sg_time) # Uses your SGT function
+    created_at = db.Column(db.DateTime, default=get_sg_time) 
     is_notified = db.Column(db.Boolean, default=False)

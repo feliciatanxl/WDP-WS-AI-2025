@@ -46,10 +46,9 @@ except Exception:
     client = None
 
 # ==============================================================================
-# 3. Database Helper Logic (FIXED: Two-Way Sync for AI Agent)
+# 3. Database Helper Logic FIXED
 # ==============================================================================
 def get_inventory_string():
-    # --- THE CRITICAL FIX ---
     db.session.expire_all() # This forces the bot to re-read the DB file right now
     
     products = Product.query.all()
@@ -138,7 +137,7 @@ def handle_new_prospect(customer_number, customer_message, history):
         return "Welcome! May I have your name and neighborhood to link you with a local leader?"
 
 # ==============================================================================
-# 5. AI Sales Engine (FIXED: Live Data Supremacy)
+# 5. AI Sales Engine FIXED
 # ==============================================================================
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."

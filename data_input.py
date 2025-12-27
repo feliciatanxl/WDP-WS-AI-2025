@@ -41,8 +41,8 @@ def seed_data():
 
         # --- 3. SEED YOURSELF AS CUSTOMER ---
         # IMPORTANT: Use the exact phone number you use for WhatsApp (with country code)
-        your_phone = "6500000000" # <-- CHANGE THIS to your WhatsApp number
-        your_name = "Test"
+        your_phone = "6591540822" # <-- CHANGE THIS to your WhatsApp number
+        your_name = "Felicia"
 
         existing_c = Customer.query.filter_by(phone=your_phone).first()
         if not existing_c:
