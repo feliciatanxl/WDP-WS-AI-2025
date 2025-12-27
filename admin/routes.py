@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, request, session, flash
+from flask import Blueprint, render_template, redirect, url_for, request, session, flash, jsonify
 from models import db, ContactInquiry, Product
 from sqlalchemy import func
 from sqlalchemy.orm.attributes import flag_modified
-from datetime import timedelta # Add this to your imports
+from datetime import timedelta
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -38,15 +38,26 @@ def dashboard():
                             products=products, 
                             last_seen_id=last_seen_id)
 
-# Adding products with automatic status detection
+# 1. LIVE SYNC API ROUTE (Required for the JS in your HTML)
+@admin_bp.route('/admin/api/products')
+def get_products_api():
+    products = Product.query.all()
+    # Returns raw data for the JavaScript setInterval to process
+    return jsonify([{
+        'id': p.id,
+        'available_qty': p.available_qty,
+        'status': p.status
+    } for p in products])
+
+# 2. ADD PRODUCT (Fixed with Category support)
 @admin_bp.route("/admin/products/add", methods=['POST'])
 def add_product():
     name = request.form.get('name')
     stock = int(request.form.get('stock', 0))
     price = float(request.form.get('price', 0.0))
+    category = request.form.get('category', 'leafy')
     image_file = request.form.get('image_file', 'default_product.jpg')
 
-    # AUTO-STATUS: Forces correct string in DB based on initial stock
     status = "In Stock" if stock > 0 else "Out of Stock"
 
     try:
@@ -54,45 +65,42 @@ def add_product():
             name=name,
             available_qty=stock,
             price=price,
+            category=category,
             status=status,
             image_file=image_file
         )
         db.session.add(new_product)
         db.session.commit()
-        print(f"✅ SUCCESS: Added {name} as {status} to DB")
+        print(f"✅ SUCCESS: Added {name} to DB")
     except Exception as e:
         db.session.rollback()
         print(f"❌ Insert Error: {e}")
 
     return redirect(url_for('admin.dashboard') + '#products')
 
-# Editing products with TWO-WAY forced database synchronization
+# 3. EDIT PRODUCT (With Full Two-Way Sync)
 @admin_bp.route("/admin/products/edit/<int:id>", methods=['POST'])
 def edit_product(id):
     product = Product.query.get_or_404(id)
     
     try:
         new_qty = int(request.form.get('stock', 0))
-
-        # Update core fields
         product.name = request.form.get('name')
         product.available_qty = new_qty
         product.price = float(request.form.get('price', 0.0))
+        product.category = request.form.get('category')
         product.image_file = request.form.get('image_file')
 
-        # --- THE TWO-WAY DB SYNC FIX ---
+        # Logic to auto-update status string based on qty
         if new_qty <= 0:
-            # Force "Out of Stock" string in DB if qty is 0
             product.status = "Out of Stock"
         else:
-            # Force "In Stock" string in DB if qty is 1 or more
-            # This fixes items that were stuck as 'Out of Stock' despite having units.
             product.status = "In Stock"
 
-        # Mark 'status' as modified to force SQLAlchemy to push text to leafplant.db
+        # Mark modified ensures SQLAlchemy sees the change even if it's the same string
         flag_modified(product, "status")
         db.session.commit()
-        print(f"✅ SUCCESS: DB updated ID {id} to {product.status}")
+        print(f"✅ DB Updated ID {id}: {product.status}")
         
     except Exception as e:
         db.session.rollback()
@@ -100,9 +108,8 @@ def edit_product(id):
         
     return redirect(url_for('admin.dashboard') + '#products')
 
-# Delete product
-# Change this line in your app.py / admin_bp file
-@admin_bp.route("/admin/products/delete/<int:id>", methods=['POST']) # Added methods=['POST']
+# 4. DELETE PRODUCT
+@admin_bp.route("/admin/products/delete/<int:id>", methods=['POST'])
 def delete_product(id):
     product = Product.query.get_or_404(id)
     try:
@@ -114,10 +121,8 @@ def delete_product(id):
         print(f"❌ Delete Error: {e}")
     
     return redirect(url_for('admin.dashboard') + '#products')
-    
 
-
-# Inquiry Management
+# 5. INQUIRY MANAGEMENT
 @admin_bp.route('/admin/delete/<int:id>', methods=['POST'])
 def delete_inquiry(id):
     inquiry = ContactInquiry.query.get_or_404(id)

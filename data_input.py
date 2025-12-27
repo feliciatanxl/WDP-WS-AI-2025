@@ -5,14 +5,14 @@ def seed_data():
     with app.app_context():
         # --- 1. SEED PRODUCTS ---
         crops = [
-            {"name": "Mao Bai", "price": 3.40},
-            {"name": "Jiu Bai Cai", "price": 3.30},
-            {"name": "Xiao Bai Cai", "price": 2.80},
-            {"name": "Red Pak Choy", "price": 4.20},
-            {"name": "Cos Lettuce", "price": 3.00},
-            {"name": "Lollo Bionda Lettuce", "price": 3.20},
-            {"name": "Chris Green Lettuce", "price": 2.80},
-            {"name": "Mizuna", "price": 2.50}
+            {"name": "Mao Bai", "price": 3.40, "cat": "Vegetable"},
+            {"name": "Jiu Bai Cai", "price": 3.30, "cat": "Vegetable"},
+            {"name": "Xiao Bai Cai", "price": 2.80, "cat": "Vegetable"},
+            {"name": "Red Pak Choy", "price": 4.20, "cat": "Vegetable"},
+            {"name": "Cos Lettuce", "price": 3.00, "cat": "Lettuce"},
+            {"name": "Lollo Bionda Lettuce", "price": 3.20, "cat": "Lettuce"},
+            {"name": "Chris Green Lettuce", "price": 2.80, "cat": "Lettuce"},
+            {"name": "Mizuna", "price": 2.50, "cat": "Herbs"}
         ]
 
         for crop in crops:
@@ -21,6 +21,7 @@ def seed_data():
                 new_item = Product(
                     name=crop["name"],
                     price=crop["price"],
+                    category=crop["cat"],  # <-- ADD THIS LINE
                     available_qty=100,
                     status='In Stock',
                     image_file='default_product.jpg'
