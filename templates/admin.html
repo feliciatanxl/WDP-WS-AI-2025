@@ -409,7 +409,7 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Image Filename</label>
-                                        <input type="text" name="image_file" class="form-control" value="{{ product.image_file }}">
+                                        <img src="{{ url_for('static', filename='image/' + product.image_file) }}"
                                     </div>
                                 </div>
                                 <div class="modal-footer">
