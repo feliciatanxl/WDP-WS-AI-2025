@@ -137,23 +137,30 @@ def handle_new_prospect(customer_number, customer_message, history):
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."
     
+    # --- 1. CRITICAL: LIVE DATA SYNC ---
+    # Force SQLAlchemy to ignore cached data and read the actual file on disk
     db.session.expire_all() 
+    
+    # Fetch inventory string AFTER expiring the session to ensure it's current
     stock_list = get_inventory_string()
     user_input_low = customer_message.lower()
 
-    # --- 1. CAPTURE "YES" TO STOCK ALERT ---
-    # This logic detects 'yes' and looks back to find which product was sold out
-    if any(word in user_input_low for word in ["yes", "ok", "alert", "notify", "sure", "want"]):
+    # --- 2. CAPTURE AFFIRMATIVE RESPONSES (Fixed for 'yes please', 'yep', etc.) ---
+    affirmative_words = ["yes", "ok", "alert", "notify", "sure", "want", "yep", "please", "confirm"]
+    
+    if any(word in user_input_low for word in affirmative_words):
+        # Fetch fresh products to ensure bot sees the REAL current status
         all_prods = Product.query.all()
         history = conversation_history.get(customer_number, [])
-        # Get the context of the last 3 messages to find the product name
-        last_msgs = " ".join([m['content'].lower() for m in history[-3:]])
+        
+        # Look back further (4 messages) to find the product name discussed
+        context_text = " ".join([m['content'].lower() for m in history[-4:]]) + " " + user_input_low
         
         for p in all_prods:
             p_name_low = p.name.lower()
-            # If the product name was mentioned recently and it's currently OOS
-            if (p_name_low in last_msgs or p_name_low in user_input_low) and p.available_qty <= 0:
-                # Check for existing pending alert to avoid duplicates
+            # Bot now respects the REAL status from DB (even if qty is high but status is OOS)
+            if p_name_low in context_text and (p.available_qty <= 0 or p.status == "Out of Stock"):
+                
                 existing = StockAlert.query.filter_by(
                     customer_phone=customer_number, 
                     product_name=p.name, 
@@ -162,15 +169,14 @@ def get_openai_response(customer_message, customer_number, customer_obj):
 
                 if not existing:
                     try:
-                        # --- DATABASE INPUT LOGIC ---
+                        # Create and commit the alert to leafplant.db
                         new_alert = StockAlert(
-                            customer_phone=customer_number, 
+                            customer_phone=str(customer_number), 
                             product_name=p.name, 
                             is_notified=False
                         )
                         db.session.add(new_alert)
-                        db.session.flush() # Force ID generation
-                        db.session.commit() # Save to leafplant.db
+                        db.session.commit() 
                         
                         print(f"✔️ DB SUCCESS: Stock Alert for {p.name} created for {customer_number}")
                         return f"Great! I've added you to the waiting list for *{p.name}*. I'll message you here the moment it's back! 🌿"
@@ -178,7 +184,7 @@ def get_openai_response(customer_message, customer_number, customer_obj):
                         db.session.rollback()
                         print(f"❌ DB ERROR saving stock alert: {e}")
 
-    # --- 2. RESTOCK CONTEXT ---
+    # --- 3. RESTOCK CONTEXT ---
     recent_notif = StockAlert.query.filter_by(customer_phone=customer_number, is_notified=True).order_by(StockAlert.id.desc()).first()
     restock_context = f"User is responding to a restock alert for {recent_notif.product_name}." if recent_notif else ""
 
@@ -187,7 +193,7 @@ def get_openai_response(customer_message, customer_number, customer_obj):
     leader_phone = str(customer_obj.leader.phone).split('.')[0] if customer_obj.leader else "our help desk"
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%A, %d %B %Y")
 
-    # --- 3. UPDATED SYSTEM PROMPT ---
+    # --- 4. SYSTEM PROMPT ---
     system_prompt = f"""
     You are 'Farm Sales AI'. Today: {sg_now}.
     Customer: {customer_obj.name}.
@@ -198,7 +204,7 @@ def get_openai_response(customer_message, customer_number, customer_obj):
     CONTEXT: {restock_context}
     
     CRITICAL SALES RULES:
-    1. If a customer asks for an item and the INVENTORY shows it as SOLD OUT (0 units), you MUST ask: "Would you like me to notify you here as soon as it is back in stock?"
+    1. If a customer asks for an item and the INVENTORY shows it as SOLD OUT or SOLD OUT (0 units), you MUST ask: "Would you like me to notify you here as soon as it is back in stock?"
     2. Do NOT suggest alternative products unless you have already offered the restock alert.
     3. If an item is IN STOCK, process the order immediately.
     4. CONFIRMED ORDERS: Tag as [[DATA: Item | Qty | Total]].
@@ -214,7 +220,7 @@ def get_openai_response(customer_message, customer_number, customer_obj):
         ai_reply = completion.choices[0].message.content
         clean_reply = ai_reply.split('[[')[0].strip()
 
-        # --- 4. ORDER EXTRACTION ---
+        # --- 5. ORDER EXTRACTION ---
         data_match = re.search(r"\[\[DATA:\s*(.*?)\s*\]\]", ai_reply)
         if data_match:
             parts = [p.strip() for p in data_match.group(1).split('|')]
@@ -223,10 +229,14 @@ def get_openai_response(customer_message, customer_number, customer_obj):
                 if qty_str and deduct_stock_db(item_name, int(qty_str)):
                     qty = int(qty_str)
                     new_order = WhatsAppOrder(
-                        customer_id=customer_obj.id, leader_id=customer_obj.leader_id,
-                        customer_phone=customer_number, product_name=item_name,
-                        quantity=qty, total_price=total_cost,
-                        commission_earned=total_cost * 0.111, order_status='Confirmed'
+                        customer_id=customer_obj.id, 
+                        leader_id=customer_obj.leader_id,
+                        customer_phone=customer_number, 
+                        product_name=item_name,
+                        quantity=qty, 
+                        total_price=total_cost,
+                        commission_earned=total_cost * 0.111, 
+                        order_status='Confirmed'
                     )
                     db.session.add(new_order)
                     db.session.commit()
