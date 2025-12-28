@@ -70,12 +70,33 @@ def deduct_stock_db(product_name, qty_to_deduct):
     return False
 
 # ==============================================================================
-# 4. New Prospect Handling (STRICT ONBOARDING & CONTINUOUS UPDATES)
+# 4. Outgoing Message Helper (NEW: For Broadcast Support)
+# ==============================================================================
+def send_whatsapp_message(to_phone, message_text):
+    """Utility function to send a WhatsApp message to any number."""
+    url = f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages"
+    headers = {"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": str(to_phone),
+        "type": "text",
+        "text": {"body": message_text}
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code != 200:
+            print(f"❌ Meta API Error: {response.json()}")
+        return response.status_code == 200
+    except Exception as e:
+        print(f"❌ Network Error sending WhatsApp: {e}")
+        return False
+
+# ==============================================================================
+# 5. New Prospect Handling (STRICT ONBOARDING & CONTINUOUS UPDATES)
 # ==============================================================================
 def handle_new_prospect(customer_number, customer_message, history):
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%Y-%m-%d %H:%M:%S")
     
-    # Retrieve first leader info to show to the prospect
     leader = GroupLeader.query.first()
     leader_info = f"{leader.name} (+{str(leader.phone).split('.')[0]})" if leader else "a local delivery representative"
 
@@ -102,11 +123,9 @@ def handle_new_prospect(customer_number, customer_message, history):
         completion = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
         ai_reply = completion.choices[0].message.content
         
-        # Parse tags to update the database in real-time
         name_match = re.search(r"\[\[NAME:\s*(.*?)\]\]", ai_reply)
         addr_match = re.search(r"\[\[ADDRESS:\s*(.*?)\]\]", ai_reply)
         
-        # Continuous DB Update Logic
         lead = WhatsAppLead.query.filter_by(phone=customer_number).first()
         
         if name_match or addr_match or not lead:
@@ -132,35 +151,26 @@ def handle_new_prospect(customer_number, customer_message, history):
         return "Welcome! To link you with a local leader, may I have your name and neighborhood?"
 
 # ==============================================================================
-# 5. AI Sales Engine (FOR REGISTERED CUSTOMERS ONLY)
+# 6. AI Sales Engine (FOR REGISTERED CUSTOMERS ONLY)
 # ==============================================================================
 def get_openai_response(customer_message, customer_number, customer_obj):
     if not client: return "AI Offline."
     
-    # --- 1. CRITICAL: LIVE DATA SYNC ---
-    # Force SQLAlchemy to ignore cached data and read the actual file on disk
+    # Force fresh DB read for Live Sync
     db.session.expire_all() 
-    
-    # Fetch inventory string AFTER expiring the session to ensure it's current
     stock_list = get_inventory_string()
     user_input_low = customer_message.lower()
 
-    # --- 2. CAPTURE AFFIRMATIVE RESPONSES (Fixed for 'yes please', 'yep', etc.) ---
+    # --- AFFIRMATIVE STOCK ALERT LOGIC ---
     affirmative_words = ["yes", "ok", "alert", "notify", "sure", "want", "yep", "please", "confirm"]
-    
     if any(word in user_input_low for word in affirmative_words):
-        # Fetch fresh products to ensure bot sees the REAL current status
         all_prods = Product.query.all()
         history = conversation_history.get(customer_number, [])
-        
-        # Look back further (4 messages) to find the product name discussed
         context_text = " ".join([m['content'].lower() for m in history[-4:]]) + " " + user_input_low
         
         for p in all_prods:
             p_name_low = p.name.lower()
-            # Bot now respects the REAL status from DB (even if qty is high but status is OOS)
             if p_name_low in context_text and (p.available_qty <= 0 or p.status == "Out of Stock"):
-                
                 existing = StockAlert.query.filter_by(
                     customer_phone=customer_number, 
                     product_name=p.name, 
@@ -169,7 +179,6 @@ def get_openai_response(customer_message, customer_number, customer_obj):
 
                 if not existing:
                     try:
-                        # Create and commit the alert to leafplant.db
                         new_alert = StockAlert(
                             customer_phone=str(customer_number), 
                             product_name=p.name, 
@@ -177,23 +186,17 @@ def get_openai_response(customer_message, customer_number, customer_obj):
                         )
                         db.session.add(new_alert)
                         db.session.commit() 
-                        
-                        print(f"✔️ DB SUCCESS: Stock Alert for {p.name} created for {customer_number}")
                         return f"Great! I've added you to the waiting list for *{p.name}*. I'll message you here the moment it's back! 🌿"
                     except Exception as e:
                         db.session.rollback()
-                        print(f"❌ DB ERROR saving stock alert: {e}")
 
-    # --- 3. RESTOCK CONTEXT ---
     recent_notif = StockAlert.query.filter_by(customer_phone=customer_number, is_notified=True).order_by(StockAlert.id.desc()).first()
     restock_context = f"User is responding to a restock alert for {recent_notif.product_name}." if recent_notif else ""
 
-    # Prepare Leader Details
     leader_name = customer_obj.leader.name if customer_obj.leader else "your leader"
     leader_phone = str(customer_obj.leader.phone).split('.')[0] if customer_obj.leader else "our help desk"
     sg_now = datetime.now(pytz.timezone('Asia/Singapore')).strftime("%A, %d %B %Y")
 
-    # --- 4. SYSTEM PROMPT ---
     system_prompt = f"""
     You are 'Farm Sales AI'. Today: {sg_now}.
     Customer: {customer_obj.name}.
@@ -204,7 +207,7 @@ def get_openai_response(customer_message, customer_number, customer_obj):
     CONTEXT: {restock_context}
     
     CRITICAL SALES RULES:
-    1. If a customer asks for an item and the INVENTORY shows it as SOLD OUT or SOLD OUT (0 units), you MUST ask: "Would you like me to notify you here as soon as it is back in stock?"
+    1. If a customer asks for an item and the INVENTORY shows it as SOLD OUT (0 units), you MUST ask: "Would you like me to notify you here as soon as it is back in stock?"
     2. Do NOT suggest alternative products unless you have already offered the restock alert.
     3. If an item is IN STOCK, process the order immediately.
     4. CONFIRMED ORDERS: Tag as [[DATA: Item | Qty | Total]].
@@ -220,7 +223,6 @@ def get_openai_response(customer_message, customer_number, customer_obj):
         ai_reply = completion.choices[0].message.content
         clean_reply = ai_reply.split('[[')[0].strip()
 
-        # --- 5. ORDER EXTRACTION ---
         data_match = re.search(r"\[\[DATA:\s*(.*?)\s*\]\]", ai_reply)
         if data_match:
             parts = [p.strip() for p in data_match.group(1).split('|')]
@@ -229,14 +231,10 @@ def get_openai_response(customer_message, customer_number, customer_obj):
                 if qty_str and deduct_stock_db(item_name, int(qty_str)):
                     qty = int(qty_str)
                     new_order = WhatsAppOrder(
-                        customer_id=customer_obj.id, 
-                        leader_id=customer_obj.leader_id,
-                        customer_phone=customer_number, 
-                        product_name=item_name,
-                        quantity=qty, 
-                        total_price=total_cost,
-                        commission_earned=total_cost * 0.111, 
-                        order_status='Confirmed'
+                        customer_id=customer_obj.id, leader_id=customer_obj.leader_id,
+                        customer_phone=customer_number, product_name=item_name,
+                        quantity=qty, total_price=total_cost,
+                        commission_earned=total_cost * 0.111, order_status='Confirmed'
                     )
                     db.session.add(new_order)
                     db.session.commit()
@@ -247,11 +245,10 @@ def get_openai_response(customer_message, customer_number, customer_obj):
                             f"Your Group Buy Leader, *{leader_name}*, will contact you at *(+{leader_phone})* regarding pickup details! 🌿")
         return clean_reply
     except Exception as e:
-        print(f"AI ERROR: {e}")
         return "I'm checking that for you now!"
 
 # ==============================================================================
-# 6. Webhook Handling
+# 7. Webhook Handling
 # ==============================================================================
 @app.route('/webhook', methods=['POST'])
 def handle_message():
@@ -268,6 +265,7 @@ def handle_message():
         if msg_id in processed_messages: return jsonify({"status": "duplicate"}), 200
         processed_messages.add(msg_id) 
 
+        # Force live DB sync immediately on message receipt
         db.session.expire_all()
         customer = Customer.query.filter_by(phone=customer_number).first()
         
@@ -280,15 +278,15 @@ def handle_message():
         conversation_history[customer_number].append({"role": "user", "content": customer_message})
         conversation_history[customer_number].append({"role": "assistant", "content": reply})
 
-        requests.post(f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages", 
-                     headers={"Authorization": f"Bearer {YOUR_ACCESS_TOKEN}"},
-                     json={"messaging_product": "whatsapp", "to": customer_number, "type": "text", "text": {"body": reply}})
+        # Send Reply
+        send_whatsapp_message(customer_number, reply)
+        
         return jsonify({"status": "ok"}), 200 
     except Exception as e:
         return jsonify({"status": "error"}), 200
 
 # ==============================================================================
-# 7. MAIN EXECUTION BLOCK
+# 8. MAIN EXECUTION
 # ==============================================================================
 if __name__ == '__main__':
     with app.app_context():
