@@ -83,15 +83,15 @@ def seed_test_user():
 
         # --- 2. SEED YOURSELF AS CUSTOMER ---
         # Ensure this is the exact phone number (with country code) sending the WhatsApp messages.
-        your_phone = "6591540822" 
-        your_name = "Felicia"
+        your_phone = "6588951434" 
+        your_name = "Charlisa"
 
         existing_c = Customer.query.filter_by(phone=your_phone).first()
         if not existing_c:
             new_customer = Customer(
                 name=your_name,
                 phone=your_phone,
-                email="felicia@test.com",
+                email="charlisa@test.com",
                 leader_id=test_leader.id  
             )
             db.session.add(new_customer)
